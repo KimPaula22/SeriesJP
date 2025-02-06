@@ -1,34 +1,38 @@
 package com.example.seriesjp.view
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import coil.compose.rememberImagePainter
-import com.example.seriesjp.R
-import com.example.seriesjp.model.Pelicula
+import com.example.seriesjp.model.Peliculas
 import com.example.seriesjp.viewmodel.PeliculasViewModel
 
 @Composable
 fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostController) {
-    // Acceder correctamente al valor del State
     val peliculasList = viewModel.peliculasList.value
-    val isLoading = peliculasList.isEmpty()  // Para manejar el estado de carga
+    val isLoading = peliculasList.isEmpty()
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
         Text(
-            text = "Películas",
+            text = "Películas Populares",
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
             color = Color.Black
@@ -46,10 +50,11 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(peliculasList) { pelicula ->
-                    PeliculaItem(pelicula = pelicula) {
-                        // Navegación cuando se hace clic en una película
-                        navController.navigate("peliculaDetails/${pelicula.id}")
-                    }
+                    PeliculaItem(
+                        pelicula = pelicula,
+                        onClick = { navController.navigate("peliculaDetails/${pelicula.id}") },
+                        viewModel = viewModel
+                    )
                 }
             }
         }
@@ -57,36 +62,139 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
 }
 
 @Composable
-fun PeliculaItem(pelicula: Pelicula, onClick: () -> Unit) {
-    Row(
+fun PeliculaItem(
+    pelicula: Peliculas,
+    onClick: () -> Unit,
+    viewModel: PeliculasViewModel
+) {
+    val yaEnLista = viewModel.miListaPeliculas.contains(pelicula)
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .clickable { onClick() } // Ejecuta la función cuando se hace clic
+            .padding(8.dp)
+            .clickable { onClick() },
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        // Usar Coil para cargar imágenes desde URL
-        val imagePainter = rememberImagePainter(
-            data = pelicula.posterPath,  // Suponiendo que tienes una URL de la imagen en 'posterPath'
-            builder = {
-                crossfade(true)  // Agregar transición de imagen
+        Row(modifier = Modifier.padding(8.dp)) {
+            AsyncImage(
+                model = "https://image.tmdb.org/t/p/w500${pelicula.posterPath}",
+                contentDescription = pelicula.title,
+                modifier = Modifier
+                    .size(100.dp)
+                    .padding(end = 8.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = pelicula.title ?: "Sin título",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    maxLines = 1
+                )
+                Text(text = "📅 Estreno: ${pelicula.releaseDate ?: "No disponible"}", fontSize = 12.sp)
+                Text(text = "⭐ Rating: ${pelicula.voteAverage ?: "N/A"}", fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        if (yaEnLista) viewModel.quitarPeliculaDeMiLista(pelicula)
+                        else viewModel.agregarPeliculaAMiLista(pelicula)
+                    }
+                ) {
+                    Text(text = if (yaEnLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
+                }
             }
-        )
+        }
+    }
+}
 
-        Image(
-            painter = imagePainter,
-            contentDescription = pelicula.title,
-            modifier = Modifier
-                .size(100.dp)
-                .padding(end = 16.dp)
-        )
+@Composable
+fun PeliculaTrendingItem(
+    pelicula: Peliculas,
+    onClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier
+            .width(180.dp)
+            .clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column {
+            // Imagen de la película
+            val imageUrl = pelicula.posterPath?.let {
+                "https://image.tmdb.org/t/p/w500$it"
+            } ?: "https://via.placeholder.com/180x240"
+            val imagePainter = rememberImagePainter(
+                data = imageUrl,
+                builder = { crossfade(true) }
+            )
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = pelicula.title ?: "Sin título",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            // Información de la película
+            Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+                Text(
+                    text = pelicula.title ?: "Desconocida",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    maxLines = 2
+                )
+                Text(
+                    text = "Estreno: ${pelicula.releaseDate ?: "No disponible"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "Rating: ${pelicula.voteAverage ?: "N/A"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
 
+@Composable
+fun PeliculaMiListaItem(pelicula: Peliculas, onRemove: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(140.dp)
+            .padding(4.dp),
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
         Column(
-            modifier = Modifier.fillMaxHeight(),
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = pelicula.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text(text = "Rating: ${pelicula.voteAverage}", style = MaterialTheme.typography.bodySmall)
-            Text(text = "Fecha de estreno: ${pelicula.releaseDate}", style = MaterialTheme.typography.bodySmall)
+            AsyncImage(
+                model = "https://image.tmdb.org/t/p/w500${pelicula.posterPath}",
+                contentDescription = pelicula.title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+            )
+            Text(
+                text = pelicula.title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Eliminar", tint = Color.Red)
+            }
         }
     }
 }

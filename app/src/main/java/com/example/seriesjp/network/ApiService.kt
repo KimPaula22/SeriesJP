@@ -1,6 +1,6 @@
 package com.example.seriesjp.network
 
-import com.example.seriesjp.model.Pelicula
+import com.example.seriesjp.model.Peliculas
 import com.example.seriesjp.model.PopularMoviesResponse
 import com.example.seriesjp.model.PopularSeriesResponse
 import com.example.seriesjp.model.Series
@@ -23,4 +23,20 @@ interface ApiService {
         @Query("api_key") apiKey: String,
         @Query("language") language: String = "es-ES"
     ): Response<PopularSeriesResponse>
+
+    // Endpoint para buscar series
+    @GET("search/tv")
+    suspend fun searchSeries(
+        @Query("api_key") apiKey: String,
+        @Query("query") query: String
+    ): Response<PopularSeriesResponse>
+
+
+    // Buscar películas por nombre
+    @GET("search/movie")
+    suspend fun searchPeliculas(
+        @Query("api_key") apiKey: String,
+        @Query("query") query: String
+    ): Response<PopularMoviesResponse>
+
 }
