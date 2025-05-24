@@ -3,6 +3,7 @@ package com.example.seriesjp.view
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -17,13 +18,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import coil.compose.rememberImagePainter
 import com.example.seriesjp.model.Peliculas
 import com.example.seriesjp.viewmodel.PeliculasViewModel
 
 @Composable
 fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostController) {
     val peliculasList = viewModel.peliculasList.value
+    val recommendedPeliculas = viewModel.recommendedPeliculas.value
     val isLoading = peliculasList.isEmpty()
 
     Column(
@@ -40,6 +41,32 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // RECOMENDACIONES EN HORIZONTAL
+        if (recommendedPeliculas.isNotEmpty()) {
+            Text(
+                text = "Recomendaciones para ti",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(recommendedPeliculas) { pelicula ->
+                    PeliculaTrendingItem(
+                        pelicula = pelicula,
+                        onClick = {
+                            // cargamos sus recomendaciones
+                            viewModel.cargarRecomendaciones(pelicula.id)
+                            navController.navigate("peliculaDetails/${pelicula.id}")
+                        }
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -52,7 +79,11 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
                 items(peliculasList) { pelicula ->
                     PeliculaItem(
                         pelicula = pelicula,
-                        onClick = { navController.navigate("peliculaDetails/${pelicula.id}") },
+                        onClick = {
+                            // al pulsar una película del listado, también cargamos recomendaciones
+                            viewModel.cargarRecomendaciones(pelicula.id)
+                            navController.navigate("peliculaDetails/${pelicula.id}")
+                        },
                         viewModel = viewModel
                     )
                 }
@@ -121,14 +152,10 @@ fun PeliculaTrendingItem(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            // Imagen de la película
             val imageUrl = pelicula.posterPath?.let {
                 "https://image.tmdb.org/t/p/w500$it"
             } ?: "https://via.placeholder.com/180x240"
-            val imagePainter = rememberImagePainter(
-                data = imageUrl,
-                builder = { crossfade(true) }
-            )
+
             AsyncImage(
                 model = imageUrl,
                 contentDescription = pelicula.title ?: "Sin título",
@@ -138,7 +165,6 @@ fun PeliculaTrendingItem(
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(8.dp))
-            // Información de la película
             Column(modifier = Modifier.padding(horizontal = 8.dp)) {
                 Text(
                     text = pelicula.title ?: "Desconocida",

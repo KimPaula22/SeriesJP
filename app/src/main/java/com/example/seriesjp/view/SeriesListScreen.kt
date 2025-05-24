@@ -1,17 +1,11 @@
 package com.example.seriesjp.view
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,18 +15,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import coil.compose.rememberImagePainter
-import android.util.Log
+import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import coil.compose.AsyncImage
 import com.example.seriesjp.model.Series
 import com.example.seriesjp.viewmodel.SeriesViewModel
+
 @Composable
 fun SeriesListScreen(viewModel: SeriesViewModel, navController: NavHostController) {
     val seriesList = viewModel.seriesList.value
+    val recommendedSeries = viewModel.recommendedSeries.value
     val isLoading = seriesList.isEmpty()
 
     Column(
@@ -55,20 +49,50 @@ fun SeriesListScreen(viewModel: SeriesViewModel, navController: NavHostControlle
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.weight(1f)
             ) {
                 items(seriesList) { serie ->
                     SeriesItem(
                         series = serie,
                         onClick = {
                             navController.navigate("seriesDetails/${serie.id}")
+                            viewModel.cargarRecomendaciones(serie.id)
                         }
                     )
+                }
+
+                item {
+                    if (recommendedSeries.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = "Recomendaciones",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(recommendedSeries) { recSerie ->
+                                SeriesTrendingItem(
+                                    series = recSerie,
+                                    onClick = {
+                                        navController.navigate("seriesDetails/${recSerie.id}")
+                                        viewModel.cargarRecomendaciones(recSerie.id)
+                                    },
+                                    viewModel = viewModel
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
+
 @Composable
 fun SeriesItem(
     series: Series,
@@ -152,6 +176,7 @@ fun SeriesTrendingItem(
         }
     }
 }
+
 @Composable
 fun SerieMiListaItem(serie: Series, onRemove: () -> Unit) {
     Card(

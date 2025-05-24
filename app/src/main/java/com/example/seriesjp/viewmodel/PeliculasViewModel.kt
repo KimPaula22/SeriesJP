@@ -13,6 +13,7 @@ import com.example.seriesjp.network.RetrofitInstance
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.MutableLiveData
+import com.example.seriesjp.model.*
 
 class PeliculasViewModel : ViewModel() {
     private val _peliculasList = mutableStateOf<List<Peliculas>>(emptyList())
@@ -24,6 +25,9 @@ class PeliculasViewModel : ViewModel() {
 
     private val _errorMessage = mutableStateOf<String?>(null)
     val errorMessage: State<String?> = _errorMessage
+
+    private val _recommendedPeliculas = mutableStateOf<List<Peliculas>>(emptyList())
+    val recommendedPeliculas: State<List<Peliculas>> = _recommendedPeliculas
 
     private val apiKey = "87ba94f350ec59be982686b11c25da34"
 
@@ -76,6 +80,21 @@ class PeliculasViewModel : ViewModel() {
         }
     }
 
+    fun cargarRecomendaciones(peliculaId: Int) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitInstance.api.getMovieRecommendations(peliculaId, apiKey)
+                if (response.isSuccessful) {
+                    _recommendedPeliculas.value = response.body()?.results ?: emptyList()
+                } else {
+                    Log.e("PeliculasViewModel", "Error recomendacion: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("PeliculasViewModel", "Exception recomendacion: $e")
+            }
+        }
+    }
+
     fun quitarPeliculaDeMiLista(pelicula: Peliculas) {
         _miListaPeliculas.remove(pelicula)
     }
@@ -83,6 +102,35 @@ class PeliculasViewModel : ViewModel() {
     fun refreshPeliculas() {
         loadPeliculas()
         }
+
+
+
+    private val _watchProviders = mutableStateOf<List<Provider>>(emptyList())
+    val watchProviders: State<List<Provider>> = _watchProviders
+
+    /**
+     * Carga los proveedores de la película en España ("ES")
+     */
+    fun loadWatchProviders(movieId: Int) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitInstance.api.getMovieWatchProviders(movieId, apiKey)
+                if (resp.isSuccessful) {
+                    val body = resp.body()
+                    // tomar flatrate de España
+                    val providers = body?.results
+                        ?.get("ES")
+                        ?.flatrate
+                        ?: emptyList()
+                    _watchProviders.value = providers
+                } else {
+                    Log.e("PeliculasVM", "Error providers: ${resp.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("PeliculasVM", "Excepción providers: $e")
+            }
+        }
+    }
     }
 
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "647230863809",
+    "project_id": "seriesjp-f0809",
+    "storage_bucket": "seriesjp-f0809.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:647230863809:android:de5797687c612df53f5740",
+        "android_client_info": {
+          "package_name": "com.example.seriesjp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaHuuqXw1lPFwxl_YhZvzWie1piiuWx-k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

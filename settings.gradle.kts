@@ -10,7 +10,15 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id.startsWith("org.jetbrains.kotlin")) {
+                useVersion("2.1.0")
+            }
+        }
+    }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -18,6 +26,10 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+rootProject.name = "SeriesJP"
+include(":app")
+
 
 rootProject.name = "SeriesJP"
 include(":app")
