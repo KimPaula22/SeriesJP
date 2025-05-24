@@ -14,6 +14,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.MutableLiveData
 import com.example.seriesjp.model.*
+import com.google.firebase.firestore.FirebaseFirestore
 
 class PeliculasViewModel : ViewModel() {
     private val _peliculasList = mutableStateOf<List<Peliculas>>(emptyList())
@@ -130,6 +131,24 @@ class PeliculasViewModel : ViewModel() {
                 Log.e("PeliculasVM", "Excepción providers: $e")
             }
         }
+    }
+
+
+    fun cargarMiListaDesdeFirestore(userId: String) {
+        val firestore = FirebaseFirestore.getInstance()
+        firestore.collection("miListaPeliculas")
+            .document(userId)
+            .get()
+            .addOnSuccessListener { doc ->
+                val lista = doc.toObject(MiListaPeliculasFirestore::class.java)
+                _miListaPeliculas.clear()
+                if (lista != null) {
+                    _miListaPeliculas.addAll(lista.peliculas)
+                }
+            }
+            .addOnFailureListener {
+                Log.e("PeliculasViewModel", "Error al cargar MiLista desde Firestore: ${it.message}")
+            }
     }
     }
 

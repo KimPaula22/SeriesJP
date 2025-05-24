@@ -18,13 +18,14 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import com.example.seriesjp.model.Series
 import com.example.seriesjp.viewmodel.SeriesViewModel
 
 @Composable
-fun SeriesListScreen(viewModel: SeriesViewModel, navController: NavHostController) {
+fun SeriesListScreen(
+    viewModel: SeriesViewModel,
+    navController: NavHostController
+) {
     val seriesList = viewModel.seriesList.value
     val recommendedSeries = viewModel.recommendedSeries.value
     val isLoading = seriesList.isEmpty()
@@ -51,16 +52,20 @@ fun SeriesListScreen(viewModel: SeriesViewModel, navController: NavHostControlle
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f)
             ) {
+                // Lista principal de series
                 items(seriesList) { serie ->
                     SeriesItem(
                         series = serie,
                         onClick = {
-                            navController.navigate("seriesDetails/${serie.id}")
+                            // Primero cargamos recomendaciones de esta serie
                             viewModel.cargarRecomendaciones(serie.id)
+                            // Luego navegamos al detalle
+                            navController.navigate("seriesDetails/${serie.id}")
                         }
                     )
                 }
 
+                // Sección de recomendaciones
                 item {
                     if (recommendedSeries.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -79,8 +84,9 @@ fun SeriesListScreen(viewModel: SeriesViewModel, navController: NavHostControlle
                                 SeriesTrendingItem(
                                     series = recSerie,
                                     onClick = {
-                                        navController.navigate("seriesDetails/${recSerie.id}")
+                                        // Igual aquí: cargar y navegar
                                         viewModel.cargarRecomendaciones(recSerie.id)
+                                        navController.navigate("seriesDetails/${recSerie.id}")
                                     },
                                     viewModel = viewModel
                                 )
@@ -112,9 +118,9 @@ fun SeriesItem(
                 contentDescription = series.name,
                 modifier = Modifier
                     .size(100.dp)
-                    .padding(end = 8.dp)
+                    .padding(end = 8.dp),
+                contentScale = ContentScale.Crop
             )
-
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = series.name ?: "Sin título",
@@ -122,8 +128,14 @@ fun SeriesItem(
                     fontSize = 16.sp,
                     maxLines = 1
                 )
-                Text(text = "📅 Estreno: ${series.firstAirDate ?: "No disponible"}", fontSize = 12.sp)
-                Text(text = "⭐ Rating: ${series.voteAverage ?: "N/A"}", fontSize = 12.sp)
+                Text(
+                    text = "📅 Estreno: ${series.firstAirDate ?: "No disponible"}",
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "⭐ Rating: ${series.voteAverage ?: "N/A"}",
+                    fontSize = 12.sp
+                )
             }
         }
     }
@@ -178,7 +190,10 @@ fun SeriesTrendingItem(
 }
 
 @Composable
-fun SerieMiListaItem(serie: Series, onRemove: () -> Unit) {
+fun SerieMiListaItem(
+    serie: Series,
+    onRemove: () -> Unit
+) {
     Card(
         modifier = Modifier
             .width(140.dp)
@@ -195,7 +210,8 @@ fun SerieMiListaItem(serie: Series, onRemove: () -> Unit) {
                 contentDescription = serie.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(180.dp),
+                contentScale = ContentScale.Crop
             )
             Text(
                 text = serie.name,

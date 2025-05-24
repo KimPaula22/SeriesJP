@@ -26,24 +26,29 @@ fun SeriesDetailsScreen(
     seriesId: Int?,
     viewModel: SeriesViewModel
 ) {
-    val seriesList by viewModel.seriesList
-    val serie: Series? = seriesId?.let { id -> seriesList.find { it.id == id } }
-    val enMiLista = serie != null && viewModel.miListaSeries.contains(serie)
+    val populares by viewModel.seriesList
+    val recomendaciones by viewModel.recommendedSeries
+    // Buscamos primero en la lista de populares y si no está, en las recomendaciones
+    val serie: Series? = seriesId?.let { id ->
+        populares.find { it.id == id }
+            ?: recomendaciones.find { it.id == id }
+    }
+    // La lista de proveedores de streaming
     val providers by viewModel.watchProviders
+    val enMiLista = serie != null && viewModel.miListaSeries.contains(serie)
 
     serie?.let {
-        // Carga proveedores y recomendaciones al entrar
+        // Cuando entramos, cargamos proveedores y nuevas recomendaciones
         LaunchedEffect(it.id) {
             viewModel.loadWatchProviders(it.id)
             viewModel.cargarRecomendaciones(it.id)
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
         ) {
-            // Botón de vuelta
+            // Botón para volver atrás
             Row(modifier = Modifier.fillMaxWidth()) {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
@@ -82,11 +87,10 @@ fun SeriesDetailsScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(providers) { prov: Provider ->
+                    items(providers) { prov ->
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.width(64.dp)
@@ -120,6 +124,7 @@ fun SeriesDetailsScreen(
             }
         }
     } ?: run {
+        // Si no la hemos encontrado ni en populares ni en recomendaciones
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Serie no encontrada")
         }
