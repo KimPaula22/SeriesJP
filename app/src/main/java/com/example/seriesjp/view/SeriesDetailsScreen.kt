@@ -1,4 +1,3 @@
-// SeriesDetailsScreen.kt
 package com.example.seriesjp.view
 
 import androidx.compose.foundation.layout.*

@@ -144,6 +144,7 @@ class MainActivity : ComponentActivity() {
                 arguments = listOf(navArgument("seriesId") { type = NavType.IntType })
             ) { backStackEntry ->
                 val seriesId = backStackEntry.arguments?.getInt("seriesId")
+                Log.d("DEBUG_NAV", "En SeriesDetails, argumentos: seriesId=$seriesId")
                 if (seriesId == null) {
                     navController.popBackStack()
                 } else {

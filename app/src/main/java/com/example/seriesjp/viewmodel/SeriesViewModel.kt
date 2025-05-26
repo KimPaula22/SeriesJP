@@ -106,4 +106,13 @@ class SeriesViewModel : ViewModel() {
     }
 
     fun refreshSeries() = loadSeries()
+
+
+    // Dentro de SeriesViewModel
+    var selectedSerie: Series? = null
+        private set
+
+    fun selectSerie(serie: Series) {
+        selectedSerie = serie
+    }
 }
