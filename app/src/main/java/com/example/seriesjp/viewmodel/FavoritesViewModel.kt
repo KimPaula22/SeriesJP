@@ -1,12 +1,10 @@
 package com.example.seriesjp.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.seriesjp.data.FavoritesRepository
+import com.example.seriesjp.datastore.FavoritesRepository
 import com.example.seriesjp.model.Favoritos
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 /**
  * ViewModel para gestionar la lista de favoritos (series y películas).

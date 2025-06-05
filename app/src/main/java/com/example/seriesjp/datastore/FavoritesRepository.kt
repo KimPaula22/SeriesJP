@@ -1,4 +1,4 @@
-package com.example.seriesjp.data
+package com.example.seriesjp.datastore
 
 import android.util.Log
 import com.example.seriesjp.model.Favoritos

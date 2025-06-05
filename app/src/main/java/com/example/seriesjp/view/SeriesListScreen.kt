@@ -1,15 +1,19 @@
 package com.example.seriesjp.view
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -17,8 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import com.example.seriesjp.model.Series
 import com.example.seriesjp.viewmodel.SeriesViewModel
 
@@ -34,19 +36,24 @@ fun SeriesListScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212)) // rosa palo a gris oscuro casi negro
+                )
+            )
             .padding(16.dp)
     ) {
         Text(
             text = "Series Populares",
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
-            color = Color.Black
+            color = Color.White
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Color.White)
             }
         } else {
             LazyColumn(
@@ -58,9 +65,7 @@ fun SeriesListScreen(
                     SeriesItem(
                         series = serie,
                         onClick = {
-                            // Primero cargamos recomendaciones de esta serie
                             viewModel.cargarRecomendaciones(serie.id)
-                            // Luego navegamos al detalle
                             navController.navigate("seriesDetails/${serie.id}")
                         }
                     )
@@ -74,7 +79,7 @@ fun SeriesListScreen(
                             text = "Recomendaciones",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
-                            color = Color.Black,
+                            color = Color.White,
                             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
                         )
                         LazyRow(
@@ -85,7 +90,6 @@ fun SeriesListScreen(
                                 SeriesTrendingItem(
                                     series = recSerie,
                                     onClick = {
-                                        // Igual aquí: cargar y navegar
                                         viewModel.cargarRecomendaciones(recSerie.id)
                                         navController.navigate("seriesDetails/${recSerie.id}")
                                     },
@@ -127,15 +131,18 @@ fun SeriesItem(
                     text = series.name ?: "Sin título",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    color = Color.Black
                 )
                 Text(
                     text = "📅 Estreno: ${series.firstAirDate ?: "No disponible"}",
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    color = Color.DarkGray
                 )
                 Text(
                     text = "⭐ Rating: ${series.voteAverage ?: "N/A"}",
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    color = Color.DarkGray
                 )
             }
         }
@@ -171,17 +178,16 @@ fun SeriesTrendingItem(
                     text = series.name ?: "Desconocida",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    maxLines = 2
+                    maxLines = 2,
+                    color = Color.Black
                 )
                 Text(
                     text = "Estreno: ${series.firstAirDate ?: "No disponible"}",
-                    style = MaterialTheme.typography.bodySmall,
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
                 Text(
                     text = "Rating: ${series.voteAverage ?: "N/A"}",
-                    style = MaterialTheme.typography.bodySmall,
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
@@ -193,12 +199,14 @@ fun SeriesTrendingItem(
 @Composable
 fun SerieMiListaItem(
     serie: Series,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onClick: () -> Unit // <- Añadido este parámetro
 ) {
     Card(
         modifier = Modifier
             .width(140.dp)
-            .padding(4.dp),
+            .padding(4.dp)
+            .clickable { onClick() }, // <- Aplicado onClick al Card
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -215,10 +223,11 @@ fun SerieMiListaItem(
                 contentScale = ContentScale.Crop
             )
             Text(
-                text = serie.name,
+                text = serie.name ?: "Sin título",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1
+                maxLines = 1,
+                color = Color.Black
             )
             IconButton(
                 onClick = onRemove,

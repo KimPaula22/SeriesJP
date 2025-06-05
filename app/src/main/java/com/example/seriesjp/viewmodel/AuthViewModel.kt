@@ -2,7 +2,7 @@ package com.example.seriesjp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.seriesjp.data.SessionPreferences
+import com.example.seriesjp.datastore.SessionPreferences
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.MutableStateFlow

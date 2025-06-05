@@ -1,18 +1,22 @@
-// SeriesViewModel.kt
 package com.example.seriesjp.viewmodel
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.seriesjp.datastore.RatingPreferences
 import com.example.seriesjp.model.Provider
 import com.example.seriesjp.model.Series
 import com.example.seriesjp.network.RetrofitInstance
 import kotlinx.coroutines.launch
 
-class SeriesViewModel : ViewModel() {
+class SeriesViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val ratingPreferences = RatingPreferences(application)
 
     private val _seriesList = mutableStateOf<List<Series>>(emptyList())
     val seriesList: State<List<Series>> = _seriesList
@@ -25,6 +29,9 @@ class SeriesViewModel : ViewModel() {
 
     private val _watchProviders = mutableStateOf<List<Provider>>(emptyList())
     val watchProviders: State<List<Provider>> = _watchProviders
+
+    private val _ratings = mutableStateMapOf<Int, Int>() // Nuevo: puntuaciones
+    val ratings: Map<Int, Int> get() = _ratings
 
     private val apiKey = "87ba94f350ec59be982686b11c25da34"
 
@@ -107,12 +114,27 @@ class SeriesViewModel : ViewModel() {
 
     fun refreshSeries() = loadSeries()
 
-
-    // Dentro de SeriesViewModel
     var selectedSerie: Series? = null
         private set
 
     fun selectSerie(serie: Series) {
         selectedSerie = serie
+    }
+
+    // cargar puntuación desde almacenamiento
+    fun cargarPuntuacion(seriesId: Int) {
+        viewModelScope.launch {
+            ratingPreferences.getRating(seriesId).collect { rating ->
+                _ratings[seriesId] = rating
+            }
+        }
+    }
+
+    //  guardar puntuación
+    fun guardarPuntuacion(seriesId: Int, rating: Int) {
+        _ratings[seriesId] = rating
+        viewModelScope.launch {
+            ratingPreferences.saveRating(seriesId, rating)
+        }
     }
 }

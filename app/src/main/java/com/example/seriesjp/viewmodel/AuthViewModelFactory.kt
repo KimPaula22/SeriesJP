@@ -2,7 +2,7 @@ package com.example.seriesjp.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.seriesjp.data.SessionPreferences
+import com.example.seriesjp.datastore.SessionPreferences
 
 class AuthViewModelFactory(
     private val sessionPreferences: SessionPreferences

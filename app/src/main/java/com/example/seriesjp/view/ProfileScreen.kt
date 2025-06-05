@@ -52,7 +52,14 @@ fun ProfileScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { navController.popBackStack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) {
+                    navController.navigate("home/$userId") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            }) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",

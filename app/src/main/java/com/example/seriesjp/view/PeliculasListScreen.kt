@@ -1,5 +1,6 @@
 package com.example.seriesjp.view
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -30,23 +32,28 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212)) // rosa palo a gris oscuro casi negro
+                )
+            )
+            .padding(start = 16.dp, top = 56.dp, end = 16.dp, bottom = 16.dp) // espacia todo hacia abajo
     ) {
         Text(
             text = "Películas Populares",
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
-            color = Color.Black
+            color = Color.White
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // RECOMENDACIONES EN HORIZONTAL
         if (recommendedPeliculas.isNotEmpty()) {
             Text(
                 text = "Recomendaciones para ti",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
+                color = Color.White,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             LazyRow(
@@ -57,7 +64,6 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
                     PeliculaTrendingItem(
                         pelicula = pelicula,
                         onClick = {
-                            // cargamos sus recomendaciones
                             viewModel.cargarRecomendaciones(pelicula.id)
                             navController.navigate("peliculaDetails/${pelicula.id}")
                         }
@@ -69,7 +75,7 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Color.White)
             }
         } else {
             LazyColumn(
@@ -80,7 +86,6 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
                     PeliculaItem(
                         pelicula = pelicula,
                         onClick = {
-                            // al pulsar una película del listado, también cargamos recomendaciones
                             viewModel.cargarRecomendaciones(pelicula.id)
                             navController.navigate("peliculaDetails/${pelicula.id}")
                         },
@@ -114,7 +119,8 @@ fun PeliculaItem(
                 contentDescription = pelicula.title,
                 modifier = Modifier
                     .size(100.dp)
-                    .padding(end = 8.dp)
+                    .padding(end = 8.dp),
+                contentScale = ContentScale.Crop
             )
 
             Column(modifier = Modifier.weight(1f)) {
@@ -122,16 +128,26 @@ fun PeliculaItem(
                     text = pelicula.title ?: "Sin título",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    color = Color.Black
                 )
-                Text(text = "📅 Estreno: ${pelicula.releaseDate ?: "No disponible"}", fontSize = 12.sp)
-                Text(text = "⭐ Rating: ${pelicula.voteAverage ?: "N/A"}", fontSize = 12.sp)
+                Text(
+                    text = "📅 Estreno: ${pelicula.releaseDate ?: "No disponible"}",
+                    fontSize = 12.sp,
+                    color = Color.DarkGray
+                )
+                Text(
+                    text = "⭐ Rating: ${pelicula.voteAverage ?: "N/A"}",
+                    fontSize = 12.sp,
+                    color = Color.DarkGray
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = {
                         if (yaEnLista) viewModel.quitarPeliculaDeMiLista(pelicula)
                         else viewModel.agregarPeliculaAMiLista(pelicula)
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(text = if (yaEnLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
                 }
@@ -170,17 +186,16 @@ fun PeliculaTrendingItem(
                     text = pelicula.title ?: "Desconocida",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    maxLines = 2
+                    maxLines = 2,
+                    color = Color.Black
                 )
                 Text(
                     text = "Estreno: ${pelicula.releaseDate ?: "No disponible"}",
-                    style = MaterialTheme.typography.bodySmall,
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
                 Text(
                     text = "Rating: ${pelicula.voteAverage ?: "N/A"}",
-                    style = MaterialTheme.typography.bodySmall,
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
@@ -190,11 +205,16 @@ fun PeliculaTrendingItem(
 }
 
 @Composable
-fun PeliculaMiListaItem(pelicula: Peliculas, onRemove: () -> Unit) {
+fun PeliculaMiListaItem(
+    pelicula: Peliculas,
+    onRemove: () -> Unit,
+    onClick: () -> Unit // <- Añadido este parámetro
+) {
     Card(
         modifier = Modifier
             .width(140.dp)
-            .padding(4.dp),
+            .padding(4.dp)
+            .clickable { onClick() }, // <- Aplicado onClick al Card
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -207,13 +227,15 @@ fun PeliculaMiListaItem(pelicula: Peliculas, onRemove: () -> Unit) {
                 contentDescription = pelicula.title,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(180.dp),
+                contentScale = ContentScale.Crop
             )
             Text(
-                text = pelicula.title,
+                text = pelicula.title ?: "Sin título",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1
+                maxLines = 1,
+                color = Color.Black
             )
             IconButton(
                 onClick = onRemove,
