@@ -1,4 +1,3 @@
-// PeliculaDetailsScreen.kt
 package com.example.seriesjp.view
 
 import androidx.compose.foundation.background
@@ -21,11 +20,15 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
+
 @Composable
 fun PeliculaDetailsScreen(
     navController: NavController,
     peliculaId: Int?,
-    viewModel: PeliculasViewModel
+    viewModel: PeliculasViewModel,
+    userId: String // usuario para cargar y guardar puntuaciones
 ) {
     val populares by viewModel.peliculasList
     val recomendadas by viewModel.recommendedPeliculas
@@ -37,8 +40,15 @@ fun PeliculaDetailsScreen(
 
     LaunchedEffect(peliculaId) {
         peliculaId?.let { viewModel.loadWatchProviders(it) }
+        // Cargar puntuaciones y lista al iniciar la pantalla
+        viewModel.cargarPuntuacionesDesdeFirestore(userId)
+        viewModel.cargarMiListaDesdeFirestore(userId)
     }
+
     val providers by viewModel.watchProviders
+    val ratings by viewModel.ratings
+
+    var userRating by remember { mutableStateOf(ratings[peliculaId] ?: 0) }
 
     pelicula?.let { p ->
         Column(
@@ -46,7 +56,7 @@ fun PeliculaDetailsScreen(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212)) // rosa palo a gris oscuro casi negro
+                        colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212))
                     )
                 )
                 .padding(16.dp)
@@ -74,7 +84,31 @@ fun PeliculaDetailsScreen(
             Spacer(Modifier.height(8.dp))
             Text("Fecha de estreno: ${p.releaseDate}", color = Color.White)
             Spacer(Modifier.height(8.dp))
-            Text("Puntuación: ${p.voteAverage}", color = Color.White)
+
+            // Mostrar puntuación general
+            Text("Puntuación media: ${p.voteAverage}", color = Color.White)
+            Spacer(Modifier.height(8.dp))
+
+            // Composable para puntuación del usuario
+            Text("Tu puntuación:", fontWeight = FontWeight.Bold, color = Color.White)
+            Row {
+                for (i in 1..5) {
+                    IconButton(
+                        onClick = {
+                            userRating = i
+                            peliculaId?.let { id ->
+                                viewModel.guardarPuntuacion(userId, id, i)
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (i <= userRating) Icons.Filled.Star else Icons.Outlined.Star,
+                            contentDescription = "Estrella $i",
+                            tint = Color.Yellow
+                        )
+                    }
+                }
+            }
 
             if (providers.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))

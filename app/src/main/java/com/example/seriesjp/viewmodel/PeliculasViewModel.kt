@@ -1,25 +1,19 @@
 package com.example.seriesjp.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.seriesjp.model.Peliculas
-import com.example.seriesjp.model.PopularMoviesResponse
-import kotlinx.coroutines.launch
+import com.example.seriesjp.model.MiListaPeliculasFirestore
+import com.example.seriesjp.model.Provider
 import com.example.seriesjp.network.RetrofitInstance
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.MutableLiveData
-import com.example.seriesjp.model.*
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 class PeliculasViewModel : ViewModel() {
     private val _peliculasList = mutableStateOf<List<Peliculas>>(emptyList())
     val peliculasList: State<List<Peliculas>> = _peliculasList
-
 
     private val _isLoading = mutableStateOf(true)
     val isLoading: State<Boolean> = _isLoading
@@ -31,6 +25,8 @@ class PeliculasViewModel : ViewModel() {
     val recommendedPeliculas: State<List<Peliculas>> = _recommendedPeliculas
 
     private val apiKey = "87ba94f350ec59be982686b11c25da34"
+
+    private val firestore = FirebaseFirestore.getInstance()
 
     init {
         loadPeliculas()
@@ -71,7 +67,6 @@ class PeliculasViewModel : ViewModel() {
         }
     }
 
-
     private val _miListaPeliculas = mutableStateListOf<Peliculas>()
     val miListaPeliculas: List<Peliculas> get() = _miListaPeliculas
 
@@ -102,9 +97,7 @@ class PeliculasViewModel : ViewModel() {
 
     fun refreshPeliculas() {
         loadPeliculas()
-        }
-
-
+    }
 
     private val _watchProviders = mutableStateOf<List<Provider>>(emptyList())
     val watchProviders: State<List<Provider>> = _watchProviders
@@ -118,7 +111,6 @@ class PeliculasViewModel : ViewModel() {
                 val resp = RetrofitInstance.api.getMovieWatchProviders(movieId, apiKey)
                 if (resp.isSuccessful) {
                     val body = resp.body()
-                    // tomar flatrate de España
                     val providers = body?.results
                         ?.get("ES")
                         ?.flatrate
@@ -133,9 +125,7 @@ class PeliculasViewModel : ViewModel() {
         }
     }
 
-
     fun cargarMiListaDesdeFirestore(userId: String) {
-        val firestore = FirebaseFirestore.getInstance()
         firestore.collection("miListaPeliculas")
             .document(userId)
             .get()
@@ -150,7 +140,41 @@ class PeliculasViewModel : ViewModel() {
                 Log.e("PeliculasViewModel", "Error al cargar MiLista desde Firestore: ${it.message}")
             }
     }
+
+    // --- Gestión de puntuaciones ---
+
+    // Mapa peliculaId -> puntuacion (1..5)
+    private val _ratings = mutableStateOf<Map<Int, Int>>(emptyMap())
+    val ratings: State<Map<Int, Int>> = _ratings
+
+    fun cargarPuntuacionesDesdeFirestore(userId: String) {
+        firestore.collection("puntuacionesPeliculas")
+            .document(userId)
+            .get()
+            .addOnSuccessListener { doc ->
+                val data = doc.data ?: emptyMap<String, Long>()
+                val map = data.mapNotNull {
+                    val key = it.key.toIntOrNull()
+                    val value = (it.value as? Long)?.toInt()
+                    if (key != null && value != null) key to value else null
+                }.toMap()
+                _ratings.value = map
+            }
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error cargar puntuaciones: ${it.message}")
+            }
     }
 
+    fun guardarPuntuacion(userId: String, peliculaId: Int, puntuacion: Int) {
+        val nuevaMapa = _ratings.value.toMutableMap()
+        nuevaMapa[peliculaId] = puntuacion
+        _ratings.value = nuevaMapa
 
-
+        firestore.collection("puntuacionesPeliculas")
+            .document(userId)
+            .set(nuevaMapa)
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error guardar puntuacion: ${it.message}")
+            }
+    }
+}

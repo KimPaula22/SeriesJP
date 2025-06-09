@@ -25,20 +25,16 @@ import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun BackButton(navController: NavHostController) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        IconButton(onClick = {
-            val popped = navController.popBackStack()
-            if (!popped) {
-                navController.navigate("home") {
-                    popUpTo("login") { inclusive = true }
-                }
+    IconButton(onClick = {
+        if (!navController.popBackStack()) {
+            navController.navigate("home") {
+                popUpTo("home") { inclusive = false }
             }
-        }) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
         }
+    }) {
+        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
     }
 }
-
 @Composable
 fun RatingBar(
     currentRating: Int,

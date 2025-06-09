@@ -117,13 +117,19 @@ class MainActivity : ComponentActivity() {
                 PeliculasListScreen(viewModel = peliculasViewModel, navController = navController)
             }
             composable(
-                "peliculaDetails/{peliculaId}",
-                arguments = listOf(navArgument("peliculaId") { type = NavType.IntType })
+                "peliculaDetails/{peliculaId}/{userId}",
+                arguments = listOf(
+                    navArgument("peliculaId") { type = NavType.IntType },
+                    navArgument("userId") { type = NavType.StringType }
+                )
             ) { backStackEntry ->
                 val peliculaId = backStackEntry.arguments?.getInt("peliculaId")
-                if (peliculaId != null) {
-                    PeliculaDetailsScreen(navController, peliculaId, peliculasViewModel)
-                } else navController.popBackStack()
+                val userId = backStackEntry.arguments?.getString("userId")
+                if (peliculaId != null && userId != null) {
+                    PeliculaDetailsScreen(navController, peliculaId, peliculasViewModel, userId)
+                } else {
+                    navController.popBackStack()
+                }
             }
             composable(
                 "favorites/{userId}",
