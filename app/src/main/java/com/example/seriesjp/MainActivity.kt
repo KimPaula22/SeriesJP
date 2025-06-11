@@ -36,6 +36,7 @@ import androidx.navigation.navArgument
 import com.example.seriesjp.ui.theme.SeriesJPTheme
 import com.example.seriesjp.view.*
 import com.example.seriesjp.viewmodel.*
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
@@ -47,7 +48,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        FirebaseApp.initializeApp(this)
         FirebaseFirestore.getInstance().apply {
             firestoreSettings = FirebaseFirestoreSettings.Builder()
                 .setPersistenceEnabled(true)
@@ -231,10 +232,18 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(12.dp)
             ) {
                 IconButton(onClick = { navController.navigate("home/$userId") }) {
-                    Icon(Icons.Default.Home, contentDescription = "Inicio", tint = Color(0xFFE43F5A))
+                    Icon(
+                        Icons.Default.Home,
+                        contentDescription = "Inicio",
+                        tint = Color(0xFFE43F5A)
+                    )
                 }
                 IconButton(onClick = { navController.navigate("series") }) {
-                    Icon(Icons.Default.List, contentDescription = "Series", tint = Color(0xFFF0A500))
+                    Icon(
+                        Icons.Default.List,
+                        contentDescription = "Series",
+                        tint = Color(0xFFF0A500)
+                    )
                 }
                 IconButton(onClick = { navController.navigate("peliculas") }) {
                     Icon(
@@ -260,10 +269,13 @@ class MainActivity : ComponentActivity() {
         Scaffold(
             topBar = {
                 TopBar(
-                    isSearching,
-                    searchQuery,
+                    isSearching = isSearching,
+                    searchQuery = searchQuery,
                     onSearchQueryChange = { searchQuery = it },
-                    onSearchClick = { isSearching = !isSearching; if (!isSearching) searchQuery = "" },
+                    onSearchClick = {
+                        isSearching = !isSearching
+                        if (!isSearching) searchQuery = ""
+                    },
                     onSearchSubmit = {
                         seriesViewModel.searchSeries(searchQuery)
                         peliculasViewModel.searchPeliculas(searchQuery)
@@ -277,61 +289,87 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             },
-            bottomBar = { BottomNav(navController, userId) }
+            bottomBar = {
+                BottomNav(navController = navController, userId = userId)
+            }
         ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Brush.verticalGradient(listOf(Color(0xFF1B1B2F), Color(0xFF162447))))
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
-                ) {
-                    Text("Tendencias en Series", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color.LightGray)
-                    Spacer(Modifier.height(8.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(seriesViewModel.seriesList.value) { serie ->
-                            SeriesTrendingItem(
-                                serie,
-                                onClick = { navController.navigate("seriesDetails/${serie.id}") },
-                                viewModel = seriesViewModel
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF1B1B2F),
+                                Color(0xFF162447)
                             )
+                        )
+                    )
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Tendencias en Series",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = Color.LightGray
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(seriesViewModel.seriesList.value) { serie ->
+                        SeriesTrendingItem(serie) {
+                            navController.navigate("seriesDetails/${serie.id}")
                         }
                     }
+                }
 
-                    Spacer(Modifier.height(16.dp))
-                    Text("Tendencias en Películas", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color.LightGray)
-                    Spacer(Modifier.height(8.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(peliculasViewModel.peliculasList.value) { pelicula ->
-                            PeliculaTrendingItem(
-                                pelicula,
-                                onClick = { navController.navigate("peliculaDetails/${pelicula.id}") }
-                            )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Tendencias en Películas",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = Color.LightGray
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(peliculasViewModel.peliculasList.value) { pelicula ->
+                        PeliculaTrendingItem(pelicula) {
+                            navController.navigate("peliculaDetails/${pelicula.id}/$userId")
                         }
                     }
+                }
 
-                    Spacer(Modifier.height(16.dp))
-                    Text("Mi Lista", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color.LightGray)
-                    Spacer(Modifier.height(8.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(seriesViewModel.miListaSeries) { s ->
-                            SerieMiListaItem(
-                                serie = s,
-                                onRemove = { seriesViewModel.quitarSerieDeMiLista(s) },
-                                onClick = { navController.navigate("seriesDetails/${s.id}") }
-                            )
-                        }
-                        items(peliculasViewModel.miListaPeliculas) { p ->
-                            PeliculaMiListaItem(
-                                pelicula = p,
-                                onRemove = { peliculasViewModel.quitarPeliculaDeMiLista(p) },
-                                onClick = { navController.navigate("peliculaDetails/${p.id}") }
-                            )
-                        }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Mi Lista",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = Color.LightGray
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(seriesViewModel.miListaSeries) { s ->
+                        SerieMiListaItem(
+                            serie = s,
+                            onRemove = { seriesViewModel.quitarSerieDeMiLista(s) },
+                            onClick = { navController.navigate("seriesDetails/${s.id}") }
+                        )
+                    }
+                    items(peliculasViewModel.miListaPeliculas) { p ->
+                        PeliculaMiListaItem(
+                            pelicula = p,
+                            onRemove = { peliculasViewModel.quitarPeliculaDeMiLista(p) },
+                            onClick = { navController.navigate("peliculaDetails/${p.id}/$userId") }
+                        )
                     }
                 }
             }
         }
     }
 }
+
+
+
+
+
+

@@ -1,15 +1,21 @@
 package com.example.seriesjp.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.seriesjp.datastore.SessionPreferences
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -66,4 +72,28 @@ class AuthViewModel(
         // se puede limpiar preferencia si quieres que no mantenga sesión tras cerrar
         setKeepLoggedIn(false)
     }
+    // Conectarte cuenta de google
+
+    fun signInWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            try {
+                val result = FirebaseAuth.getInstance().signInWithCredential(credential).await()
+                _authState.value = AuthState.Success(result.user!!)
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error("Error al iniciar sesión con Google")
+            }
+        }
+    }
+
+    //Conexion con google
+    fun getGoogleSignInClient(context: Context): GoogleSignInClient {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("TU_WEB_CLIENT_ID") // Copiado de la consola de Firebase
+            .requestEmail()
+            .build()
+        return GoogleSignIn.getClient(context, gso)
+    }
+
 }

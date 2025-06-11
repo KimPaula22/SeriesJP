@@ -9,9 +9,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.seriesjp.datastore.RatingPreferences
+import com.example.seriesjp.model.Comentario
 import com.example.seriesjp.model.Provider
 import com.example.seriesjp.model.Series
 import com.example.seriesjp.network.RetrofitInstance
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.launch
 
 class SeriesViewModel(application: Application) : AndroidViewModel(application) {
@@ -136,5 +139,38 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             ratingPreferences.saveRating(seriesId, rating)
         }
+    }
+
+    private val _comentarios = mutableStateMapOf<Int, List<Comentario>>()
+    val comentarios: Map<Int, List<Comentario>> get() = _comentarios
+
+    fun agregarComentario(serieId: Int, comentario: Comentario) {
+        val db = Firebase.firestore
+        db.collection("series")
+            .document(serieId.toString())
+            .collection("comentarios")
+            .add(comentario)
+            .addOnSuccessListener {
+                Log.d("Firestore", "Comentario guardado correctamente")
+                cargarComentarios(serieId)  // Recargar después de guardar
+            }
+            .addOnFailureListener {
+                Log.e("Firestore", "Error al guardar comentario", it)
+            }
+    }
+
+    fun cargarComentarios(serieId: Int) {
+        val db = Firebase.firestore
+        db.collection("series")
+            .document(serieId.toString())
+            .collection("comentarios")
+            .get()
+            .addOnSuccessListener { result ->
+                val lista = result.documents.mapNotNull { it.toObject(Comentario::class.java) }
+                _comentarios[serieId] = lista
+            }
+            .addOnFailureListener {
+                Log.e("Firestore", "Error al cargar comentarios", it)
+            }
     }
 }

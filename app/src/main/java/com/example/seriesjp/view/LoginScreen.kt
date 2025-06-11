@@ -1,5 +1,8 @@
 package com.example.seriesjp.view
 
+import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,15 +15,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.seriesjp.R
 import com.example.seriesjp.datastore.SessionPreferences
 import com.example.seriesjp.viewmodel.AuthState
 import com.example.seriesjp.viewmodel.AuthViewModel
 import com.example.seriesjp.viewmodel.AuthViewModelFactory
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +50,28 @@ fun LoginScreen(
 
     val state by authViewModel.authState.collectAsState()
 
+    val googleSignInClient = remember {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("647230863809-43lj5aeq0pk38gq24s0ipcmtu3v0ndlb.apps.googleusercontent.com")
+            .requestEmail()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            account?.idToken?.let { token ->
+                authViewModel.signInWithGoogle(token)
+            }
+        } catch (e: Exception) {
+            // Manejo de error si falla el login con Google
+        }
+    }
+
     LaunchedEffect(state) {
         if (state is AuthState.Success) {
             onLoginSuccess((state as AuthState.Success).user.uid)
@@ -55,8 +84,8 @@ fun LoginScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF8AB8D1),  // azul claro
-                        Color(0xFF1A1A1A)   // gris oscuro casi negro
+                        Color(0xFF8AB8D1),
+                        Color(0xFF1A1A1A)
                     )
                 )
             )
@@ -120,7 +149,7 @@ fun LoginScreen(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = Color.White  // tinte directo para el icono
+                            tint = Color.White
                         )
                     }
                 },
@@ -170,6 +199,26 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Entrar")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    launcher.launch(googleSignInClient.signInIntent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_google_logo),
+                    contentDescription = "Google Sign-In",
+                    tint = Color.Unspecified
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Iniciar sesión con Google", color = Color.Black)
             }
 
             Spacer(Modifier.height(8.dp))

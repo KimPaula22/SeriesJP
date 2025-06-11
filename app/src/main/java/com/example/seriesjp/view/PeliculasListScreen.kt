@@ -34,10 +34,10 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212)) // rosa palo a gris oscuro casi negro
+                    colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212))
                 )
             )
-            .padding(start = 16.dp, top = 56.dp, end = 16.dp, bottom = 16.dp) // espacia todo hacia abajo
+            .padding(start = 16.dp, top = 56.dp, end = 16.dp, bottom = 16.dp)
     ) {
         Text(
             text = "Películas Populares",
@@ -80,7 +80,8 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally // Centrar items con ancho fijo
             ) {
                 items(peliculasList) { pelicula ->
                     PeliculaItem(
@@ -107,7 +108,7 @@ fun PeliculaItem(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
+            .width(320.dp)  // ancho fijo, no fillMaxWidth
             .padding(8.dp)
             .clickable { onClick() },
         shape = MaterialTheme.shapes.medium,
@@ -163,15 +164,14 @@ fun PeliculaTrendingItem(
 ) {
     Card(
         modifier = Modifier
-            .width(180.dp)
+            .size(width = 180.dp, height = 240.dp) // mismo tamaño que series
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            val imageUrl = pelicula.posterPath?.let {
-                "https://image.tmdb.org/t/p/w500$it"
-            } ?: "https://via.placeholder.com/180x240"
-
+            val imageUrl = pelicula.posterPath
+                ?.let { "https://image.tmdb.org/t/p/w500$it" }
+                ?: "https://via.placeholder.com/180x200"
             AsyncImage(
                 model = imageUrl,
                 contentDescription = pelicula.title ?: "Sin título",
@@ -180,8 +180,8 @@ fun PeliculaTrendingItem(
                     .height(180.dp),
                 contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+            Spacer(Modifier.height(8.dp))
+            Column(Modifier.padding(horizontal = 8.dp)) {
                 Text(
                     text = pelicula.title ?: "Desconocida",
                     fontWeight = FontWeight.Bold,
@@ -189,16 +189,9 @@ fun PeliculaTrendingItem(
                     maxLines = 2,
                     color = Color.Black
                 )
-                Text(
-                    text = "Estreno: ${pelicula.releaseDate ?: "No disponible"}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-                Text(
-                    text = "Rating: ${pelicula.voteAverage ?: "N/A"}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Spacer(Modifier.height(4.dp))
+                Text("Estreno: ${pelicula.releaseDate ?: "No disponible"}", fontSize = 12.sp)
+                Text("Rating: ${pelicula.voteAverage ?: "N/A"}", fontSize = 12.sp)
             }
         }
     }
@@ -208,13 +201,13 @@ fun PeliculaTrendingItem(
 fun PeliculaMiListaItem(
     pelicula: Peliculas,
     onRemove: () -> Unit,
-    onClick: () -> Unit // <- Añadido este parámetro
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .width(140.dp)
             .padding(4.dp)
-            .clickable { onClick() }, // <- Aplicado onClick al Card
+            .clickable { onClick() },
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -227,7 +220,7 @@ fun PeliculaMiListaItem(
                 contentDescription = pelicula.title,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp),
+                    .height(200.dp),
                 contentScale = ContentScale.Crop
             )
             Text(

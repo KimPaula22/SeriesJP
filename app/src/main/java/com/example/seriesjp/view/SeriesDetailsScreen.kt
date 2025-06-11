@@ -1,6 +1,7 @@
 package com.example.seriesjp.view
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -21,7 +22,9 @@ import com.example.seriesjp.model.Provider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.ui.text.font.FontWeight
+import com.example.seriesjp.model.Comentario
 
 @Composable
 fun BackButton(navController: NavHostController) {
@@ -38,17 +41,25 @@ fun BackButton(navController: NavHostController) {
 @Composable
 fun RatingBar(
     currentRating: Int,
-    onRatingSelected: (Int) -> Unit
+    onRatingSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    maxRating: Int = 10,
+    iconSize: Int = 20
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        for (i in 1..10) {
-            IconButton(onClick = { onRatingSelected(i) }) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Puntuación $i",
-                    tint = if (i <= currentRating) Color.Yellow else Color.Gray
-                )
-            }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 1..maxRating) {
+            Icon(
+                modifier = Modifier
+                    .size(iconSize.dp)
+                    .padding(2.dp)
+                    .clickable { onRatingSelected(i) },
+                imageVector = if (i <= currentRating) Icons.Filled.Star else Icons.Outlined.Star,
+                contentDescription = "Estrella $i",
+                tint = Color.Yellow
+            )
         }
     }
 }
@@ -69,12 +80,15 @@ fun SeriesDetailsScreen(
 
     val enMiLista = serie != null && viewModel.miListaSeries.contains(serie)
 
+    var showComentariosDialog by remember { mutableStateOf(false) }
+    var showNuevoComentarioDialog by remember { mutableStateOf(false) }
+
     serie?.let { s ->
-        // Cargar puntuación solo una vez al entrar
         LaunchedEffect(s.id) {
             viewModel.loadWatchProviders(s.id)
             viewModel.cargarRecomendaciones(s.id)
             viewModel.cargarPuntuacion(s.id)
+            viewModel.cargarComentarios(s.id)
         }
     }
 
@@ -120,7 +134,6 @@ fun SeriesDetailsScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Media de puntuación
                 Text(
                     text = "Puntuación media: ${String.format("%.1f", it.voteAverage)} / 10",
                     fontSize = 14.sp,
@@ -129,7 +142,6 @@ fun SeriesDetailsScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Barra de puntuación del usuario
                 Text(
                     text = "Tu puntuación:",
                     fontSize = 16.sp,
@@ -141,11 +153,20 @@ fun SeriesDetailsScreen(
                 RatingBar(
                     currentRating = userRating,
                     onRatingSelected = { rating ->
-                        serie?.let { serie ->
-                            viewModel.guardarPuntuacion(serie.id, rating)
-                        }
+                        it.id.let { id -> viewModel.guardarPuntuacion(id, rating) }
                     }
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = { showComentariosDialog = true }) {
+                        Text("Comentarios")
+                    }
+                    Button(onClick = { showNuevoComentarioDialog = true }) {
+                        Text("Nuevo Comentario")
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -192,6 +213,116 @@ fun SeriesDetailsScreen(
                 ) {
                     Text(text = if (enMiLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
                 }
+            }
+
+            if (showComentariosDialog) {
+                AlertDialog(
+                    onDismissRequest = { showComentariosDialog = false },
+                    title = { Text("Comentarios", fontWeight = FontWeight.Bold) },
+                    text = {
+                        val listaComentarios = viewModel.comentarios[it.id] ?: emptyList()
+                        if (listaComentarios.isEmpty()) {
+                            Text("No hay comentarios aún.")
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listaComentarios.forEach { comentario ->
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color(0xFF2C2C2C))
+                                            .padding(8.dp)
+                                    ) {
+                                        Text("Usuario: ${comentario.usuario}", color = Color.White)
+                                        Text("Puntuación: ${comentario.puntuacion}/10", color = Color.Yellow)
+                                        Text("Fecha: ${comentario.fecha}", color = Color.Gray, fontSize = 12.sp)
+                                        Text(comentario.texto, color = Color.White)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showComentariosDialog = false }) {
+                            Text("Cerrar")
+                        }
+                    }
+                )
+            }
+
+            if (showNuevoComentarioDialog) {
+                var usuario by remember { mutableStateOf("") }
+                var comentarioTexto by remember { mutableStateOf("") }
+                var puntuacion by remember { mutableStateOf(5) }
+                var errorUsuario by remember { mutableStateOf(false) }
+                var errorComentario by remember { mutableStateOf(false) }
+
+                AlertDialog(
+                    onDismissRequest = { showNuevoComentarioDialog = false },
+                    title = { Text("Nuevo Comentario") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = usuario,
+                                onValueChange = {
+                                    usuario = it
+                                    errorUsuario = false
+                                },
+                                label = { Text("Nombre de usuario") },
+                                isError = errorUsuario
+                            )
+                            Text("Puntuación:")
+                            RatingBar(currentRating = puntuacion, onRatingSelected = { puntuacion = it })
+
+                            OutlinedTextField(
+                                value = comentarioTexto,
+                                onValueChange = {
+                                    comentarioTexto = it
+                                    errorComentario = false
+                                },
+                                label = { Text("Comentario") },
+                                modifier = Modifier.fillMaxWidth(),
+                                isError = errorComentario,
+                                maxLines = 3
+                            )
+                            if (errorUsuario || errorComentario) {
+                                Text("Por favor, rellena todos los campos", color = Color.Red, fontSize = 12.sp)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            if (usuario.isBlank()) errorUsuario = true
+                            if (comentarioTexto.isBlank()) errorComentario = true
+                            if (!errorUsuario && !errorComentario) {
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                                val fecha = java.time.LocalDate.now().format(formatter)
+
+                                val nuevoComentario = Comentario(
+                                    usuario = usuario.trim(),
+                                    puntuacion = puntuacion,
+                                    fecha = fecha,
+                                    texto = comentarioTexto.trim()
+                                )
+                                it.id.let { id ->
+                                    viewModel.agregarComentario(id, nuevoComentario)
+                                    viewModel.cargarComentarios(id) // recarga comentarios tras añadir
+                                }
+                                showNuevoComentarioDialog = false
+                                // Limpieza
+                                usuario = ""
+                                comentarioTexto = ""
+                                puntuacion = 5
+                            }
+                        }) {
+                            Text("Enviar")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showNuevoComentarioDialog = false }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
             }
         } ?: run {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

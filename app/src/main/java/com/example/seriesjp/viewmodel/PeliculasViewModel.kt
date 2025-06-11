@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.seriesjp.model.Comentario
 import com.example.seriesjp.model.Peliculas
 import com.example.seriesjp.model.MiListaPeliculasFirestore
 import com.example.seriesjp.model.Provider
@@ -177,4 +178,49 @@ class PeliculasViewModel : ViewModel() {
                 Log.e("PeliculasVM", "Error guardar puntuacion: ${it.message}")
             }
     }
+
+
+    private val _comentarios = mutableStateOf<Map<Int, List<Comentario>>>(emptyMap())
+    val comentarios: State<Map<Int, List<Comentario>>> = _comentarios
+
+    fun cargarComentariosDesdeFirestore(peliculaId: Int) {
+        firestore.collection("comentariosPeliculas")
+            .document(peliculaId.toString())
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.exists()) {
+                    val lista = doc.toObject(ComentariosFirestore::class.java)?.comentarios ?: emptyList()
+                    val mapaActual = _comentarios.value.toMutableMap()
+                    mapaActual[peliculaId] = lista
+                    _comentarios.value = mapaActual
+                }
+            }
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error cargar comentarios: ${it.message}")
+            }
+    }
+
+    fun agregarComentario(peliculaId: Int, comentario: Comentario) {
+        val listaActual = _comentarios.value[peliculaId]?.toMutableList() ?: mutableListOf()
+        listaActual.add(comentario)
+
+        // Actualizar estado local
+        val mapaActual = _comentarios.value.toMutableMap()
+        mapaActual[peliculaId] = listaActual
+        _comentarios.value = mapaActual
+
+        // Guardar en Firestore
+        val datos = hashMapOf("comentarios" to listaActual)
+        firestore.collection("comentariosPeliculas")
+            .document(peliculaId.toString())
+            .set(datos)
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error guardar comentario: ${it.message}")
+            }
+    }
+
+    // Clase auxiliar para mapear Firestore
+    data class ComentariosFirestore(
+        val comentarios: List<Comentario> = emptyList()
+    )
 }
