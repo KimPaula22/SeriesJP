@@ -27,7 +27,8 @@ import com.example.seriesjp.viewmodel.AuthState
 import com.example.seriesjp.viewmodel.AuthViewModel
 import com.example.seriesjp.viewmodel.AuthViewModelFactory
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,14 +49,21 @@ fun LoginScreen(
     var passwordError by remember { mutableStateOf(false) }
     var keepLoggedIn by remember { mutableStateOf(false) }
 
+    // Leer preferencia una vez para pre-chequear la casilla al mostrar LoginScreen
+    LaunchedEffect(Unit) {
+        try {
+            keepLoggedIn = sessionPreferences.keepLoggedIn.first()
+        } catch (_: Exception) {
+            // Si hay error leyendo, dejamos false
+            keepLoggedIn = false
+        }
+    }
+
     val state by authViewModel.authState.collectAsState()
 
+    // Obtener GoogleSignInClient desde ViewModel (asegúrate de reemplazar el WEB_CLIENT_ID en AuthViewModel)
     val googleSignInClient = remember {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("647230863809-43lj5aeq0pk38gq24s0ipcmtu3v0ndlb.apps.googleusercontent.com")
-            .requestEmail()
-            .build()
-        GoogleSignIn.getClient(context, gso)
+        authViewModel.getGoogleSignInClient(context)
     }
 
     val launcher = rememberLauncherForActivityResult(
@@ -65,13 +73,16 @@ fun LoginScreen(
         try {
             val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
             account?.idToken?.let { token ->
+                // Guardar preferencia antes de invocar signInWithGoogle si se desea mantener
+                authViewModel.setKeepLoggedIn(keepLoggedIn)
                 authViewModel.signInWithGoogle(token)
             }
         } catch (e: Exception) {
-            // Manejo de error si falla el login con Google
+            // Aquí podrías mostrar un Snackbar o similar
         }
     }
 
+    // Navegar al detectarse éxito en el state del ViewModel
     LaunchedEffect(state) {
         if (state is AuthState.Success) {
             onLoginSuccess((state as AuthState.Success).user.uid)
@@ -192,6 +203,7 @@ fun LoginScreen(
                     passwordError = password.isEmpty()
 
                     if (!emailError && !passwordError) {
+                        // Guardar preferencia antes de signIn
                         authViewModel.setKeepLoggedIn(keepLoggedIn)
                         authViewModel.signIn(email.trim(), password)
                     }

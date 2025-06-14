@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Star
@@ -38,8 +40,7 @@ fun PeliculaDetailsScreen(
     val recomendadas by viewModel.recommendedPeliculas
 
     val pelicula: Peliculas? = peliculaId?.let { id ->
-        populares.find { it.id == id }
-            ?: recomendadas.find { it.id == id }
+        populares.find { it.id == id } ?: recomendadas.find { it.id == id }
     }
 
     LaunchedEffect(peliculaId) {
@@ -82,7 +83,6 @@ fun PeliculaDetailsScreen(
     val comentarios by viewModel.comentarios
 
     var userRating by remember { mutableStateOf(ratings[peliculaId] ?: 0) }
-
     var showComentariosDialog by remember { mutableStateOf(false) }
     var showNuevoComentarioDialog by remember { mutableStateOf(false) }
 
@@ -90,11 +90,7 @@ fun PeliculaDetailsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212))
-                    )
-                )
+                .background(Brush.verticalGradient(colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212))))
                 .padding(16.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -115,86 +111,94 @@ fun PeliculaDetailsScreen(
 
             Text(p.title, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color.White)
             Spacer(Modifier.height(8.dp))
-            Text("Descripción:", fontWeight = FontWeight.Bold, color = Color.White)
-            Text(p.overview, color = Color.White)
-            Spacer(Modifier.height(8.dp))
-            Text("Fecha de estreno: ${p.releaseDate}", color = Color.White)
-            Spacer(Modifier.height(8.dp))
 
-            Text("Puntuación media: ${p.voteAverage}", color = Color.White)
-            Spacer(Modifier.height(8.dp))
-
-            Text("Tu puntuación:", fontWeight = FontWeight.Bold, color = Color.White)
-            Row {
-                for (i in 1..5) {
-                    IconButton(
-                        onClick = {
-                            userRating = i
-                            peliculaId?.let { id -> viewModel.guardarPuntuacion(userId, id, i) }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (i <= userRating) Icons.Filled.Star else Icons.Outlined.Star,
-                            contentDescription = "Estrella $i",
-                            tint = Color.Yellow
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            if (providers.isNotEmpty()) {
-                Text("Dónde verla en España:", style = MaterialTheme.typography.titleMedium, color = Color.White)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    items(providers) { prov ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.width(80.dp)
-                        ) {
-                            AsyncImage(
-                                model = "https://image.tmdb.org/t/p/w92${prov.logoPath}",
-                                contentDescription = prov.providerName,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(prov.providerName, fontSize = 12.sp, maxLines = 2, color = Color.White)
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            val enMiLista = viewModel.miListaPeliculas.contains(p)
-            Button(
-                onClick = {
-                    if (enMiLista) viewModel.quitarPeliculaDeMiLista(p)
-                    else viewModel.agregarPeliculaAMiLista(p)
-                },
-                modifier = Modifier.fillMaxWidth()
+            // Scrollable area desde aquí ↓
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Text(if (enMiLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
-            }
+                Text("Descripción:", fontWeight = FontWeight.Bold, color = Color.White)
+                Text(p.overview, color = Color.White)
+                Spacer(Modifier.height(8.dp))
 
-            Spacer(Modifier.height(24.dp))
+                Text("Fecha de estreno: ${p.releaseDate}", color = Color.White)
+                Spacer(Modifier.height(8.dp))
 
-            // Botones para comentarios
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Button(onClick = { showComentariosDialog = true }) {
-                    Text("Comentarios")
+                Text("Puntuación media: ${p.voteAverage}", color = Color.White)
+                Spacer(Modifier.height(8.dp))
+
+                Text("Tu puntuación:", fontWeight = FontWeight.Bold, color = Color.White)
+                Row {
+                    for (i in 1..5) {
+                        IconButton(
+                            onClick = {
+                                userRating = i
+                                peliculaId?.let { id -> viewModel.guardarPuntuacion(userId, id, i) }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (i <= userRating) Icons.Filled.Star else Icons.Outlined.Star,
+                                contentDescription = "Estrella $i",
+                                tint = Color.Yellow
+                            )
+                        }
+                    }
                 }
-                Button(onClick = { showNuevoComentarioDialog = true }) {
-                    Text("Nuevo Comentario")
+
+                Spacer(Modifier.height(16.dp))
+
+                if (providers.isNotEmpty()) {
+                    Text("Dónde verla en España:", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        items(providers) { prov ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.width(80.dp)
+                            ) {
+                                AsyncImage(
+                                    model = "https://image.tmdb.org/t/p/w92${prov.logoPath}",
+                                    contentDescription = prov.providerName,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(prov.providerName, fontSize = 12.sp, maxLines = 2, color = Color.White)
+                            }
+                        }
+                    }
                 }
-            }
+
+                Spacer(Modifier.height(16.dp))
+                val enMiLista = viewModel.miListaPeliculas.contains(p)
+                Button(
+                    onClick = {
+                        if (enMiLista) viewModel.quitarPeliculaDeMiLista(p)
+                        else viewModel.agregarPeliculaAMiLista(p)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (enMiLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
+                }
+
+                Spacer(Modifier.height(24.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(onClick = { showComentariosDialog = true }) {
+                        Text("Comentarios")
+                    }
+                    Button(onClick = { showNuevoComentarioDialog = true }) {
+                        Text("Nuevo Comentario")
+                    }
+                }
+            } // ← Fin del área con scroll
         }
 
-        // Diálogo de mostrar comentarios
+        // Diálogo de comentarios
         if (showComentariosDialog) {
             AlertDialog(
                 onDismissRequest = { showComentariosDialog = false },

@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,6 +40,7 @@ fun BackButton(navController: NavHostController) {
         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
     }
 }
+
 @Composable
 fun RatingBar(
     currentRating: Int,
@@ -142,79 +145,87 @@ fun SeriesDetailsScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                Text(
-                    text = "Tu puntuación:",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                RatingBar(
-                    currentRating = userRating,
-                    onRatingSelected = { rating ->
-                        it.id.let { id -> viewModel.guardarPuntuacion(id, rating) }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = { showComentariosDialog = true }) {
-                        Text("Comentarios")
-                    }
-                    Button(onClick = { showNuevoComentarioDialog = true }) {
-                        Text("Nuevo Comentario")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (providers.isNotEmpty()) {
+                // Scrollable section
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                ) {
                     Text(
-                        text = "Dónde verla en España:",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Tu puntuación:",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(providers) { prov ->
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.width(64.dp)
-                            ) {
-                                AsyncImage(
-                                    model = "https://image.tmdb.org/t/p/w92${prov.logoPath}",
-                                    contentDescription = prov.providerName,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Text(
-                                    text = prov.providerName,
-                                    fontSize = 12.sp,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                    maxLines = 2
-                                )
-                            }
+
+                    RatingBar(
+                        currentRating = userRating,
+                        onRatingSelected = { rating ->
+                            it.id.let { id -> viewModel.guardarPuntuacion(id, rating) }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(onClick = { showComentariosDialog = true }) {
+                            Text("Comentarios")
+                        }
+                        Button(onClick = { showNuevoComentarioDialog = true }) {
+                            Text("Nuevo Comentario")
                         }
                     }
-                    Spacer(Modifier.height(16.dp))
-                }
 
-                Button(
-                    onClick = {
-                        if (enMiLista) viewModel.quitarSerieDeMiLista(it)
-                        else viewModel.agregarSerieAMiLista(it)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = if (enMiLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (providers.isNotEmpty()) {
+                        Text(
+                            text = "Dónde verla en España:",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(providers) { prov ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.width(64.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = "https://image.tmdb.org/t/p/w92${prov.logoPath}",
+                                        contentDescription = prov.providerName,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Text(
+                                        text = prov.providerName,
+                                        fontSize = 12.sp,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                        maxLines = 2
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                    }
+
+                    Button(
+                        onClick = {
+                            if (enMiLista) viewModel.quitarSerieDeMiLista(it)
+                            else viewModel.agregarSerieAMiLista(it)
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = if (enMiLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
+                    }
                 }
             }
 
+            // Comentarios Dialog
             if (showComentariosDialog) {
                 AlertDialog(
                     onDismissRequest = { showComentariosDialog = false },
@@ -249,6 +260,7 @@ fun SeriesDetailsScreen(
                 )
             }
 
+            // Nuevo Comentario Dialog
             if (showNuevoComentarioDialog) {
                 var usuario by remember { mutableStateOf("") }
                 var comentarioTexto by remember { mutableStateOf("") }
@@ -305,10 +317,9 @@ fun SeriesDetailsScreen(
                                 )
                                 it.id.let { id ->
                                     viewModel.agregarComentario(id, nuevoComentario)
-                                    viewModel.cargarComentarios(id) // recarga comentarios tras añadir
+                                    viewModel.cargarComentarios(id)
                                 }
                                 showNuevoComentarioDialog = false
-                                // Limpieza
                                 usuario = ""
                                 comentarioTexto = ""
                                 puntuacion = 5
@@ -326,10 +337,7 @@ fun SeriesDetailsScreen(
             }
         } ?: run {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    "Serie no encontrada",
-                    color = Color.White
-                )
+                Text("Serie no encontrada", color = Color.White)
             }
         }
     }

@@ -38,7 +38,6 @@ class PeliculasViewModel : ViewModel() {
             try {
                 _isLoading.value = true
                 val response = RetrofitInstance.api.getPopularMovies(apiKey)
-
                 if (response.isSuccessful) {
                     val peliculas = response.body()?.results ?: emptyList()
                     _peliculasList.value = peliculas
@@ -56,14 +55,19 @@ class PeliculasViewModel : ViewModel() {
     fun searchPeliculas(query: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitInstance.api.searchPeliculas(apiKey, query)
-                if (response.isSuccessful) {
-                    _peliculasList.value = response.body()?.results ?: emptyList()
+                if (query.isBlank()) {
+                    // Si la búsqueda está vacía, recarga lista completa
+                    loadPeliculas()
                 } else {
-                    Log.e("PeliculasViewModel", "Error: ${response.code()}")
+                    val response = RetrofitInstance.api.searchPeliculas(apiKey, query)
+                    if (response.isSuccessful) {
+                        _peliculasList.value = response.body()?.results ?: emptyList()
+                    } else {
+                        Log.e("PeliculasViewModel", "Error búsqueda: ${response.code()}")
+                    }
                 }
             } catch (e: Exception) {
-                Log.e("PeliculasViewModel", "Exception: $e")
+                Log.e("PeliculasViewModel", "Exception búsqueda: $e")
             }
         }
     }
@@ -77,6 +81,10 @@ class PeliculasViewModel : ViewModel() {
         }
     }
 
+    fun quitarPeliculaDeMiLista(pelicula: Peliculas) {
+        _miListaPeliculas.remove(pelicula)
+    }
+
     fun cargarRecomendaciones(peliculaId: Int) {
         viewModelScope.launch {
             try {
@@ -84,16 +92,12 @@ class PeliculasViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     _recommendedPeliculas.value = response.body()?.results ?: emptyList()
                 } else {
-                    Log.e("PeliculasViewModel", "Error recomendacion: ${response.code()}")
+                    Log.e("PeliculasViewModel", "Error recomendación: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e("PeliculasViewModel", "Exception recomendacion: $e")
+                Log.e("PeliculasViewModel", "Exception recomendación: $e")
             }
         }
-    }
-
-    fun quitarPeliculaDeMiLista(pelicula: Peliculas) {
-        _miListaPeliculas.remove(pelicula)
     }
 
     fun refreshPeliculas() {
@@ -126,6 +130,8 @@ class PeliculasViewModel : ViewModel() {
         }
     }
 
+    // --- Gestión de Mi Lista en Firestore ---
+
     fun cargarMiListaDesdeFirestore(userId: String) {
         firestore.collection("miListaPeliculas")
             .document(userId)
@@ -144,20 +150,32 @@ class PeliculasViewModel : ViewModel() {
 
     // --- Gestión de puntuaciones ---
 
-    // Mapa peliculaId -> puntuacion (1..5)
+    // Mapa local peliculaId -> puntuacion (1..10, por ejemplo)
     private val _ratings = mutableStateOf<Map<Int, Int>>(emptyMap())
     val ratings: State<Map<Int, Int>> = _ratings
 
+    /**
+     * Carga puntuaciones desde Firestore: el documento userId contiene un Map<String, Int>
+     * con claves como "123" que se convierten a Int aquí.
+     */
     fun cargarPuntuacionesDesdeFirestore(userId: String) {
         firestore.collection("puntuacionesPeliculas")
             .document(userId)
             .get()
             .addOnSuccessListener { doc ->
-                val data = doc.data ?: emptyMap<String, Long>()
-                val map = data.mapNotNull {
-                    val key = it.key.toIntOrNull()
-                    val value = (it.value as? Long)?.toInt()
-                    if (key != null && value != null) key to value else null
+                val data = doc.data ?: emptyMap<String, Any>()
+                // data: Map<String, Any>, donde la clave es "peliculaId" como String
+                val map = data.mapNotNull { entry ->
+                    val keyInt = entry.key.toIntOrNull()
+                    val valueInt = when (val v = entry.value) {
+                        is Long -> v.toInt()
+                        is Double -> v.toInt()
+                        is Number -> v.toInt()
+                        else -> null
+                    }
+                    if (keyInt != null && valueInt != null) {
+                        keyInt to valueInt
+                    } else null
                 }.toMap()
                 _ratings.value = map
             }
@@ -166,23 +184,36 @@ class PeliculasViewModel : ViewModel() {
             }
     }
 
+    /**
+     * Guarda la puntuación en local y en Firestore, convirtiendo claves Int a String.
+     */
     fun guardarPuntuacion(userId: String, peliculaId: Int, puntuacion: Int) {
-        val nuevaMapa = _ratings.value.toMutableMap()
-        nuevaMapa[peliculaId] = puntuacion
-        _ratings.value = nuevaMapa
+        // Actualizar primero el estado local
+        val nuevaMapaLocal = _ratings.value.toMutableMap()
+        nuevaMapaLocal[peliculaId] = puntuacion
+        _ratings.value = nuevaMapaLocal
 
+        // Convertir el Map<Int, Int> a Map<String, Int> antes de enviar a Firestore
+        val mapaStringKey: Map<String, Int> = nuevaMapaLocal.mapKeys { it.key.toString() }
         firestore.collection("puntuacionesPeliculas")
             .document(userId)
-            .set(nuevaMapa)
+            .set(mapaStringKey)
+            .addOnSuccessListener {
+                Log.d("PeliculasVM", "Puntuación guardada en Firestore: $mapaStringKey")
+            }
             .addOnFailureListener {
-                Log.e("PeliculasVM", "Error guardar puntuacion: ${it.message}")
+                Log.e("PeliculasVM", "Error guardar puntuación: ${it.message}")
             }
     }
 
+    // --- Gestión de comentarios ---
 
     private val _comentarios = mutableStateOf<Map<Int, List<Comentario>>>(emptyMap())
     val comentarios: State<Map<Int, List<Comentario>>> = _comentarios
 
+    /**
+     * Carga comentarios de una película. Cada documento id = peliculaId (String) con campo "comentarios": List<Comentario>
+     */
     fun cargarComentariosDesdeFirestore(peliculaId: Int) {
         firestore.collection("comentariosPeliculas")
             .document(peliculaId.toString())
@@ -200,20 +231,25 @@ class PeliculasViewModel : ViewModel() {
             }
     }
 
+    /**
+     * Agrega un comentario localmente y lo guarda en Firestore.
+     */
     fun agregarComentario(peliculaId: Int, comentario: Comentario) {
+        // Actualizar estado local
         val listaActual = _comentarios.value[peliculaId]?.toMutableList() ?: mutableListOf()
         listaActual.add(comentario)
-
-        // Actualizar estado local
         val mapaActual = _comentarios.value.toMutableMap()
         mapaActual[peliculaId] = listaActual
         _comentarios.value = mapaActual
 
-        // Guardar en Firestore
+        // Guardar en Firestore: el campo "comentarios" es una lista de objetos Comentario
         val datos = hashMapOf("comentarios" to listaActual)
         firestore.collection("comentariosPeliculas")
             .document(peliculaId.toString())
             .set(datos)
+            .addOnSuccessListener {
+                Log.d("PeliculasVM", "Comentario guardado en Firestore para película $peliculaId")
+            }
             .addOnFailureListener {
                 Log.e("PeliculasVM", "Error guardar comentario: ${it.message}")
             }

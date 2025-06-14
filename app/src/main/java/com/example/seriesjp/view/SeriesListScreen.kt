@@ -48,7 +48,7 @@ fun SeriesListScreen(
             text = "Series Populares",
             fontWeight = FontWeight.Bold,
             fontSize = 28.sp,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -58,7 +58,7 @@ fun SeriesListScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
             }
         } else {
             LazyColumn(
@@ -82,7 +82,7 @@ fun SeriesListScreen(
                             text = "Recomendaciones",
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
                         )
                         LazyRow(
@@ -139,18 +139,18 @@ fun SeriesItem(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     maxLines = 1,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "📅 Estreno: ${series.firstAirDate ?: "No disponible"}",
                     fontSize = 13.sp,
-                    color = Color.DarkGray
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "⭐ Rating: ${series.voteAverage ?: "N/A"}",
                     fontSize = 13.sp,
-                    color = Color.DarkGray
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         }
@@ -165,7 +165,7 @@ fun SeriesTrendingItem(
 ) {
     Card(
         modifier = Modifier
-            .size(width = 180.dp, height = 240.dp) // ancho y alto fijos
+            .size(width = 180.dp, height = 240.dp)
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -178,7 +178,7 @@ fun SeriesTrendingItem(
                 contentDescription = series.name ?: "Sin nombre",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp), // tamaño imagen
+                    .height(180.dp),
                 contentScale = ContentScale.Crop
             )
             Spacer(Modifier.height(8.dp))
@@ -187,11 +187,20 @@ fun SeriesTrendingItem(
                     text = series.name ?: "Desconocida",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    maxLines = 2
+                    maxLines = 2,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.height(4.dp))
-                Text("Estreno: ${series.firstAirDate ?: "No disponible"}", fontSize = 12.sp)
-                Text("Rating: ${series.voteAverage ?: "N/A"}", fontSize = 12.sp)
+                Text(
+                    text = "Estreno: ${series.firstAirDate ?: "No disponible"}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Rating: ${series.voteAverage ?: "N/A"}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             }
         }
     }
@@ -229,14 +238,14 @@ fun SerieMiListaItem(
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onBackground
             )
             IconButton(
                 onClick = onRemove,
                 modifier = Modifier.size(28.dp)
             ) {
                 Icon(
-                    Icons.Default.Close,
+                    imageVector = Icons.Default.Close,
                     contentDescription = "Eliminar",
                     tint = Color.Red
                 )

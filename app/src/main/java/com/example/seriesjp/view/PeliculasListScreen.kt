@@ -43,7 +43,7 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
             text = "Películas Populares",
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -53,7 +53,7 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
                 text = "Recomendaciones para ti",
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             LazyRow(
@@ -75,13 +75,13 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
             }
         } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally // Centrar items con ancho fijo
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 items(peliculasList) { pelicula ->
                     PeliculaItem(
@@ -108,7 +108,7 @@ fun PeliculaItem(
 
     Card(
         modifier = Modifier
-            .width(320.dp)  // ancho fijo, no fillMaxWidth
+            .width(320.dp)
             .padding(8.dp)
             .clickable { onClick() },
         shape = MaterialTheme.shapes.medium,
@@ -130,17 +130,17 @@ fun PeliculaItem(
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     maxLines = 1,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "📅 Estreno: ${pelicula.releaseDate ?: "No disponible"}",
                     fontSize = 12.sp,
-                    color = Color.DarkGray
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "⭐ Rating: ${pelicula.voteAverage ?: "N/A"}",
                     fontSize = 12.sp,
-                    color = Color.DarkGray
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
@@ -164,7 +164,7 @@ fun PeliculaTrendingItem(
 ) {
     Card(
         modifier = Modifier
-            .size(width = 180.dp, height = 240.dp) // mismo tamaño que series
+            .size(width = 180.dp, height = 240.dp)
             .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -187,11 +187,19 @@ fun PeliculaTrendingItem(
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     maxLines = 2,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.height(4.dp))
-                Text("Estreno: ${pelicula.releaseDate ?: "No disponible"}", fontSize = 12.sp)
-                Text("Rating: ${pelicula.voteAverage ?: "N/A"}", fontSize = 12.sp)
+                Text(
+                    text = "Estreno: ${pelicula.releaseDate ?: "No disponible"}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Rating: ${pelicula.voteAverage ?: "N/A"}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             }
         }
     }
@@ -228,7 +236,7 @@ fun PeliculaMiListaItem(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onBackground
             )
             IconButton(
                 onClick = onRemove,
