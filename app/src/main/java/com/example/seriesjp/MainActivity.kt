@@ -37,27 +37,10 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.seriesjp.datastore.SessionPreferences
 import com.example.seriesjp.ui.theme.SeriesJPTheme
-import com.example.seriesjp.view.LoginScreen
-import com.example.seriesjp.view.RegisterScreen
-import com.example.seriesjp.view.SeriesListScreen
-import com.example.seriesjp.view.SeriesDetailsScreen
-import com.example.seriesjp.view.PeliculaDetailsScreen
-import com.example.seriesjp.view.PeliculasListScreen
-import com.example.seriesjp.view.FavoritesScreen
-import com.example.seriesjp.view.PeliculaMiListaItem
-import com.example.seriesjp.view.PeliculaTrendingItem
-import com.example.seriesjp.view.ProfileScreen
-import com.example.seriesjp.view.SerieMiListaItem
-import com.example.seriesjp.view.SeriesTrendingItem
-import com.example.seriesjp.viewmodel.AuthViewModel
-import com.example.seriesjp.viewmodel.AuthViewModelFactory
-import com.example.seriesjp.viewmodel.SeriesViewModel
-import com.example.seriesjp.viewmodel.PeliculasViewModel
-import com.example.seriesjp.viewmodel.FavoritesViewModel
+import com.example.seriesjp.view.*
+import com.example.seriesjp.viewmodel.*
 import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestoreSettings
-import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
     private val seriesViewModel: SeriesViewModel by viewModels()
@@ -67,11 +50,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
-        FirebaseFirestore.getInstance().apply {
-            firestoreSettings = FirebaseFirestoreSettings.Builder()
-                .setPersistenceEnabled(true)
-                .build()
-        }
+        FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .build()
+            .also {
+                // FirebaseFirestore instance with settings enabled
+            }
 
         setContent {
             SeriesJPTheme {
@@ -92,9 +76,7 @@ class MainActivity : ComponentActivity() {
     ) {
         val context = LocalContext.current
         val sessionPreferences = SessionPreferences(context)
-        val authViewModel: AuthViewModel = viewModel(
-            factory = AuthViewModelFactory(sessionPreferences)
-        )
+        val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(sessionPreferences))
 
         var autoLoginState by remember { mutableStateOf<AutoLoginState>(AutoLoginState.Checking) }
         var initialUid by remember { mutableStateOf<String?>(null) }
@@ -119,8 +101,19 @@ class MainActivity : ComponentActivity() {
                     CircularProgressIndicator()
                 }
             }
+
             AutoLoginState.Success -> {
-                NavHost(navController, startDestination = "home/{userId}") {
+                NavHost(navController, startDestination = "splash") {
+                    composable("splash") {
+                        if (initialUid != null) {
+                            LaunchedEffect(Unit) {
+                                navController.navigate("home/$initialUid") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+
                     composable(
                         "home/{userId}",
                         arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -134,9 +127,11 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
                     composable("series") {
                         SeriesListScreen(viewModel = seriesViewModel, navController = navController)
                     }
+
                     composable(
                         "seriesDetails/{seriesId}",
                         arguments = listOf(navArgument("seriesId") { type = NavType.IntType })
@@ -146,9 +141,11 @@ class MainActivity : ComponentActivity() {
                             SeriesDetailsScreen(navController, seriesId, seriesViewModel)
                         } else navController.popBackStack()
                     }
+
                     composable("peliculas") {
                         PeliculasListScreen(viewModel = peliculasViewModel, navController = navController)
                     }
+
                     composable(
                         "peliculaDetails/{peliculaId}/{userId}",
                         arguments = listOf(
@@ -164,6 +161,7 @@ class MainActivity : ComponentActivity() {
                             navController.popBackStack()
                         }
                     }
+
                     composable(
                         "favorites/{userId}",
                         arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -171,6 +169,7 @@ class MainActivity : ComponentActivity() {
                         val userId = back.arguments?.getString("userId") ?: return@composable
                         FavoritesScreen(userId, favoritesViewModel)
                     }
+
                     composable(
                         "profile/{userId}",
                         arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -183,15 +182,18 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
-                }
-                LaunchedEffect(initialUid) {
-                    initialUid?.let { uid ->
-                        navController.navigate("home/$uid") {
-                            popUpTo(0)
+
+                    composable("login") {
+                        LoginScreen(navController = navController) { uid ->
+                            peliculasViewModel.cargarMiListaDesdeFirestore(uid)
+                            navController.navigate("home/$uid") {
+                                popUpTo("login") { inclusive = true }
+                            }
                         }
                     }
                 }
             }
+
             AutoLoginState.Failed -> {
                 NavHost(navController, startDestination = "login") {
                     composable("login") {
@@ -202,6 +204,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
                     composable("register") {
                         RegisterScreen(navController = navController) { uid ->
                             peliculasViewModel.cargarMiListaDesdeFirestore(uid)
@@ -210,6 +213,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
                     composable(
                         "home/{userId}",
                         arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -296,18 +300,10 @@ class MainActivity : ComponentActivity() {
                     .padding(12.dp)
             ) {
                 IconButton(onClick = { navController.navigate("home/$userId") }) {
-                    Icon(
-                        Icons.Default.Home,
-                        contentDescription = "Inicio",
-                        tint = Color(0xFFE43F5A)
-                    )
+                    Icon(Icons.Default.Home, contentDescription = "Inicio", tint = Color(0xFFE43F5A))
                 }
                 IconButton(onClick = { navController.navigate("series") }) {
-                    Icon(
-                        Icons.Default.List,
-                        contentDescription = "Series",
-                        tint = Color(0xFFF0A500)
-                    )
+                    Icon(Icons.Default.List, contentDescription = "Series", tint = Color(0xFFF0A500))
                 }
                 IconButton(onClick = { navController.navigate("peliculas") }) {
                     Icon(
@@ -339,7 +335,6 @@ class MainActivity : ComponentActivity() {
                     onSearchClick = {
                         isSearching = !isSearching
                         if (!isSearching) {
-                            // Al cerrar búsqueda: limpiar y recargar lista completa
                             searchQuery = ""
                             seriesViewModel.refreshSeries()
                             peliculasViewModel.refreshPeliculas()
@@ -373,10 +368,7 @@ class MainActivity : ComponentActivity() {
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            listOf(
-                                Color(0xFF1B1B2F),
-                                Color(0xFF162447)
-                            )
+                            listOf(Color(0xFF1B1B2F), Color(0xFF162447))
                         )
                     )
                     .verticalScroll(rememberScrollState())

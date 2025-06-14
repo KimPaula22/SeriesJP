@@ -35,7 +35,7 @@ import com.google.firebase.auth.FirebaseAuth
 fun ProfileScreen(
     navController: NavController,
     userId: String,
-    onLogout: () -> Unit
+    onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showChangePasswordDialog by remember { mutableStateOf(false) }
@@ -56,7 +56,7 @@ fun ProfileScreen(
                 val popped = navController.popBackStack()
                 if (!popped) {
                     navController.navigate("home/$userId") {
-                        popUpTo("login") { inclusive = true }
+                        popUpTo("home/$userId") { inclusive = true }
                     }
                 }
             }) {
@@ -90,7 +90,13 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = onLogout,
+            onClick = {
+                FirebaseAuth.getInstance().signOut()
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true } // Limpia todo el backstack
+                }
+                onLogout()
+            },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE43F5A))
         ) {
             Text("Cerrar sesión", color = Color.White)
@@ -153,6 +159,9 @@ fun ProfileScreen(
                     user?.delete()?.addOnCompleteListener {
                         if (it.isSuccessful) {
                             Toast.makeText(context, "Cuenta eliminada", Toast.LENGTH_SHORT).show()
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                            }
                             onLogout()
                         } else {
                             Toast.makeText(context, "Error al eliminar cuenta", Toast.LENGTH_SHORT).show()

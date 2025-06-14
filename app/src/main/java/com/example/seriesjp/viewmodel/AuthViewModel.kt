@@ -164,7 +164,7 @@ class AuthViewModel(
      */
     fun getGoogleSignInClient(context: Context): GoogleSignInClient {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("TU_WEB_CLIENT_ID") // <- Sustituir por tu ID real
+            .requestIdToken("647230863809-43lj5aeq0pk38gq24s0ipcmtu3v0ndlb.apps.googleusercontent.com") // <- Sustituir por tu ID real
             .requestEmail()
             .build()
         return GoogleSignIn.getClient(context, gso)
