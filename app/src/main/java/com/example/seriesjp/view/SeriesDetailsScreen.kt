@@ -227,7 +227,8 @@ fun SeriesDetailsScreen(
                                 val favorito = Favoritos(
                                     id = it.id.toString(),
                                     titulo = it.name,                   // título
-                                    posterUrl = "https://image.tmdb.org/t/p/w500${it.posterPath}" // url del póster
+                                    posterUrl = "https://image.tmdb.org/t/p/w500${it.posterPath}", // url del póster
+                                    tipo = "serie"
                                 )
                                 favoritesViewModel.addFavorite(userId, favorito)
                             }

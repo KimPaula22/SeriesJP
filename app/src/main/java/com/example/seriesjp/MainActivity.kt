@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -35,6 +36,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import coil.compose.AsyncImage
 import com.example.seriesjp.datastore.SessionPreferences
 import com.example.seriesjp.ui.theme.SeriesJPTheme
 import com.example.seriesjp.view.*
@@ -195,7 +197,11 @@ class MainActivity : ComponentActivity() {
                             ) { backStackEntry ->
                                 val userId = backStackEntry.arguments?.getString("userId")
                                 if (userId != null) {
-                                    FavoritesScreen(userId, favoritesViewModel)                                }
+                                    FavoritesScreen(
+                                        userId = userId,
+                                        favoritesViewModel = favoritesViewModel,
+                                        navController = navController
+                                    )                               }
                             }
 
                             composable(
@@ -449,25 +455,41 @@ class MainActivity : ComponentActivity() {
                         items(favoritesList) { favorito ->
                             Card(
                                 modifier = Modifier
-                                    .size(140.dp)
-                                    .padding(8.dp),
+                                    .size(width = 160.dp, height = 240.dp)
+                                    .padding(8.dp)
+                                    .clickable {
+                                        if (favorito.tipo == "serie") {
+                                            navController.navigate("seriesDetails/${favorito.id}")
+                                        } else if (favorito.tipo == "pelicula") {
+                                            navController.navigate("peliculaDetails/${favorito.id}/$userId")
+                                        }
+                                    },
                                 elevation = CardDefaults.cardElevation(4.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier
-                                        .padding(8.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
+                                Column {
+                                    favorito.posterUrl?.let { imageUrl ->
+                                        AsyncImage(
+                                            model = imageUrl,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(180.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
                                     Text(
-                                        favorito.titulo,
+                                        text = favorito.titulo,
                                         style = MaterialTheme.typography.titleMedium,
-                                        maxLines = 2,
-                                        color = Color.Black
+                                        modifier = Modifier
+                                            .padding(horizontal = 8.dp),
+                                        maxLines = 2
                                     )
                                 }
                             }
                         }
+
                     }
                 }
             }
