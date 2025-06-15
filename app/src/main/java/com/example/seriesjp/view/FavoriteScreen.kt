@@ -1,5 +1,6 @@
 package com.example.seriesjp.view
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -32,38 +34,60 @@ fun FavoritesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Favoritos") }
-            )
+            // Contenedor con el degradado para el TopAppBar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF2F2F2F), Color(0xFFF4C6D7))
+                        )
+                    )
+            ) {
+                TopAppBar(
+                    title = { Text("Favoritos", color = Color.White) },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = Color.Transparent // transparente para ver el degradado
+                    )
+                )
+            }
         },
         content = { padding ->
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                if (favoritesList.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFF4C6D7),  // rosa claro
+                                Color(0xFF2F2F2F)   // gris oscuro
+                            )
+                        )
+                    )
+                    .padding(padding)
+            ) {
+                if (isLoading) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No tienes favoritos guardados.")
+                        CircularProgressIndicator()
                     }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                    ) {
-                        items(favoritesList) { favorito ->
-                            FavoriteItem(favorito = favorito, navController = navController)
+                    if (favoritesList.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No tienes favoritos guardados.", color = Color.White)
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(favoritesList) { favorito ->
+                                FavoriteItem(favorito = favorito, navController = navController)
+                            }
                         }
                     }
                 }
@@ -103,7 +127,7 @@ fun FavoriteItem(favorito: Favoritos, navController: NavHostController) {
             Text(
                 text = favorito.titulo,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.Black,
+                color = Color(0xFF2F2F2F),
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
         }
