@@ -254,6 +254,8 @@ fun SerieMiListaItem(
     }
 }
 
+
+
 /**
  * Valores comunes de UI para tamaños estandarizados.
  */

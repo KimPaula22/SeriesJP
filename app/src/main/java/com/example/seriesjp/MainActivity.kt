@@ -1,6 +1,7 @@
 package com.example.seriesjp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -59,165 +60,132 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             SeriesJPTheme {
-                val context = LocalContext.current
+                val context = this
                 val sessionPreferences = SessionPreferences(context)
                 val authViewModel: AuthViewModel =
                     viewModel(factory = AuthViewModelFactory(sessionPreferences))
-
                 val navController = rememberNavController()
 
-                var autoLoginState by remember { mutableStateOf<AutoLoginState>(AutoLoginState.Checking) }
-                var initialUid by remember { mutableStateOf<String?>(null) }
-
-                LaunchedEffect(Unit) {
-                    authViewModel.checkAutoLogin(
-                        onAutoLoginSuccess = { uid ->
-                            initialUid = uid
-                            autoLoginState = AutoLoginState.Success
-                        },
-                        onAutoLoginFail = {
-                            autoLoginState = AutoLoginState.Failed
-                        }
-                    )
-                }
-
-                when (autoLoginState) {
-                    AutoLoginState.Checking -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
+                NavHost(
+                    navController = navController,
+                    startDestination = "splash"
+                ) {
+                    // 1) Splash: pantalla inicial que decide dónde ir
+                    composable("splash") {
+                        SplashScreen(authViewModel = authViewModel, navController = navController)
+                    }
+                    // 2) Login
+                    composable("login") {
+                        LoginScreen(navController = navController) { uid ->
+                            Log.d("MainActivity", "Login manual exitoso, uid=$uid")
+                            // Cargar lista desde Firestore si hace falta
+                            peliculasViewModel.cargarMiListaDesdeFirestore(uid)
+                            // Navegar a home
+                            navController.navigate("home/$uid") {
+                                popUpTo("login") { inclusive = true }
+                            }
                         }
                     }
-
-                    else -> {
-                        // Usamos un solo NavHost con todas las rutas definidas
-                        NavHost(
-                            navController = navController,
-                            startDestination = if (autoLoginState == AutoLoginState.Success && initialUid != null) {
-                                "home/${initialUid}"
-                            } else {
-                                "login"
+                    // 3) Register
+                    composable("register") {
+                        RegisterScreen(navController = navController) { uid ->
+                            Log.d("MainActivity", "Registro exitoso, uid=$uid")
+                            peliculasViewModel.cargarMiListaDesdeFirestore(uid)
+                            navController.navigate("home/$uid") {
+                                popUpTo("register") { inclusive = true }
                             }
-                        ) {
-                            composable("login") {
-                                LoginScreen(navController = navController) { uid ->
-                                    peliculasViewModel.cargarMiListaDesdeFirestore(uid)
-                                    navController.navigate("home/$uid") {
-                                        popUpTo("login") { inclusive = true }
-                                    }
-                                }
+                        }
+                    }
+                    // 4) Home
+                    composable(
+                        "home/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val userId = backStackEntry.arguments?.getString("userId")
+                        if (userId != null) {
+                            // Carga inicial de datos justo al entrar
+                            LaunchedEffect(userId) {
+                                Log.d("HomeScreen", "Entrando a HomeScreen con userId=$userId")
+                                seriesViewModel.refreshSeries()
+                                peliculasViewModel.refreshPeliculas()
+                                favoritesViewModel.loadFavorites(userId)
                             }
-
-                            composable("register") {
-                                RegisterScreen(navController = navController) { uid ->
-                                    peliculasViewModel.cargarMiListaDesdeFirestore(uid)
-                                    navController.navigate("home/$uid") {
-                                        popUpTo("register") { inclusive = true }
-                                    }
-                                }
-                            }
-
-                            composable(
-                                "home/{userId}",
-                                arguments = listOf(navArgument("userId") {
-                                    type = NavType.StringType
-                                })
-                            ) { backStackEntry ->
-                                val userId = backStackEntry.arguments?.getString("userId")
-                                if (userId != null) {
-                                    HomeScreen(
-                                        navController,
-                                        seriesViewModel,
-                                        peliculasViewModel,
-                                        favoritesViewModel,
-                                        userId
-                                    )
-                                }
-                            }
-
-                            composable("series") {
-                                SeriesListScreen(
-                                    viewModel = seriesViewModel,
-                                    navController = navController
-                                )
-                            }
-
-                            composable(
-                                "seriesDetails/{seriesId}",
-                                arguments = listOf(navArgument("seriesId") {
-                                    type = NavType.IntType
-                                })
-                            ) { backStackEntry ->
-                                val seriesId = backStackEntry.arguments?.getInt("seriesId")
-                                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid!!
-                                if (seriesId != null) {
-                                    SeriesDetailsScreen(
-                                        navController = navController,
-                                        seriesId = seriesId,
-                                        viewModel = seriesViewModel,
-                                        favoritesViewModel = favoritesViewModel,
-                                        userId = currentUserId
-                                    )
-                                }
-                            }
-
-                            composable("peliculas") {
-                                PeliculasListScreen(
-                                    viewModel = peliculasViewModel,
-                                    navController = navController
-                                )
-                            }
-
-                            composable(
-                                "peliculaDetails/{peliculaId}/{userId}",
-                                arguments = listOf(
-                                    navArgument("peliculaId") { type = NavType.IntType },
-                                    navArgument("userId") { type = NavType.StringType }
-                                )
-                            ) { backStackEntry ->
-                                val peliculaId = backStackEntry.arguments?.getInt("peliculaId")
-                                val userId = backStackEntry.arguments?.getString("userId")
-                                if (peliculaId != null && userId != null) {
-                                    PeliculaDetailsScreen(
-                                        navController,
-                                        peliculaId,
-                                        peliculasViewModel,
-                                        userId
-                                    )
-                                }
-                            }
-
-                            composable(
-                                "favorites/{userId}",
-                                arguments = listOf(navArgument("userId") {
-                                    type = NavType.StringType
-                                })
-                            ) { backStackEntry ->
-                                val userId = backStackEntry.arguments?.getString("userId")
-                                if (userId != null) {
-                                    FavoritesScreen(
-                                        userId = userId,
-                                        favoritesViewModel = favoritesViewModel,
-                                        navController = navController
-                                    )                               }
-                            }
-
-                            composable(
-                                "profile/{userId}",
-                                arguments = listOf(navArgument("userId") {
-                                    type = NavType.StringType
-                                })
-                            ) { backStackEntry ->
-                                val userId = backStackEntry.arguments?.getString("userId")
-                                if (userId != null) {
-                                    ProfileScreen(navController, userId) {
-                                        authViewModel.signOut()
-                                        navController.navigate("login") {
-                                            popUpTo("home/$userId") { inclusive = true }
-                                        }
-                                    }
+                            HomeScreen(
+                                navController = navController,
+                                seriesViewModel = seriesViewModel,
+                                peliculasViewModel = peliculasViewModel,
+                                favoritesViewModel = favoritesViewModel,
+                                userId = userId
+                            )
+                        }
+                    }
+                    // 5) Rutas secundarias: series, detalles, etc.
+                    composable("series") {
+                        SeriesListScreen(viewModel = seriesViewModel, navController = navController)
+                    }
+                    composable(
+                        "seriesDetails/{seriesId}",
+                        arguments = listOf(navArgument("seriesId") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val seriesId = backStackEntry.arguments?.getInt("seriesId")
+                        // Mejor pasar userId también, en vez de FirebaseAuth.currentUser
+                        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                        if (seriesId != null && currentUserId != null) {
+                            SeriesDetailsScreen(
+                                navController = navController,
+                                seriesId = seriesId,
+                                viewModel = seriesViewModel,
+                                favoritesViewModel = favoritesViewModel,
+                                userId = currentUserId
+                            )
+                        }
+                    }
+                    composable("peliculas") {
+                        PeliculasListScreen(viewModel = peliculasViewModel, navController = navController)
+                    }
+                    composable(
+                        "peliculaDetails/{peliculaId}/{userId}",
+                        arguments = listOf(
+                            navArgument("peliculaId") { type = NavType.IntType },
+                            navArgument("userId") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val peliculaId = backStackEntry.arguments?.getInt("peliculaId")
+                        val userId = backStackEntry.arguments?.getString("userId")
+                        if (peliculaId != null && userId != null) {
+                            PeliculaDetailsScreen(
+                                navController = navController,
+                                peliculaId = peliculaId,
+                                viewModel = peliculasViewModel,
+                                favoritesViewModel = favoritesViewModel,
+                                userId = userId
+                            )
+                        }
+                    }
+                    composable(
+                        "favorites/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val userId = backStackEntry.arguments?.getString("userId")
+                        if (userId != null) {
+                            FavoritesScreen(
+                                userId = userId,
+                                favoritesViewModel = favoritesViewModel,
+                                navController = navController
+                            )
+                        }
+                    }
+                    composable(
+                        "profile/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val userId = backStackEntry.arguments?.getString("userId")
+                        if (userId != null) {
+                            ProfileScreen(navController = navController, userId = userId) {
+                                Log.d("MainActivity", "Cerrar sesión solicitado")
+                                authViewModel.signOut()
+                                navController.navigate("login") {
+                                    popUpTo("home/$userId") { inclusive = true }
                                 }
                             }
                         }
@@ -227,11 +195,50 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Estado de splash
     sealed class AutoLoginState {
         object Checking : AutoLoginState()
         object Success : AutoLoginState()
         object Failed : AutoLoginState()
     }
+
+    // SplashScreen Composable:
+    @Composable
+    fun SplashScreen(
+        authViewModel: AuthViewModel,
+        navController: NavHostController
+    ) {
+        // Estado interno para mostrar loader
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color.White)
+        }
+        // Al lanzarse el Composable, comprobar auto-login:
+        LaunchedEffect(Unit) {
+            Log.d("SplashScreen", "Iniciando checkAutoLogin desde SplashScreen")
+            authViewModel.checkAutoLogin(
+                onAutoLoginSuccess = { uid ->
+                    Log.d("SplashScreen", "Auto login success: uid=$uid")
+                    // Cargar lista si hace falta
+                    peliculasViewModel.cargarMiListaDesdeFirestore(uid)
+                    navController.navigate("home/$uid") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                },
+                onAutoLoginFail = {
+                    Log.d("SplashScreen", "Auto login fail -> navegar a login")
+                    navController.navigate("login") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+}
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -437,7 +444,7 @@ class MainActivity : ComponentActivity() {
 
                 // MiLista - Favoritos
                 Text(
-                    text = "MiLista",
+                    text = "Mi Lista",
                     fontWeight = FontWeight.Bold,
                     fontSize = 22.sp,
                     color = Color.LightGray
@@ -495,4 +502,3 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}

@@ -27,7 +27,6 @@ class PeliculasViewModel : ViewModel() {
     val recommendedPeliculas: State<List<Peliculas>> = _recommendedPeliculas
 
     private val apiKey = "87ba94f350ec59be982686b11c25da34"
-
     private val firestore = FirebaseFirestore.getInstance()
 
     init {
@@ -72,19 +71,57 @@ class PeliculasViewModel : ViewModel() {
         }
     }
 
+    // --- Mi Lista local y Firestore ---
     private val _miListaPeliculas = mutableStateListOf<Peliculas>()
     val miListaPeliculas: List<Peliculas> get() = _miListaPeliculas
 
-    fun agregarPeliculaAMiLista(pelicula: Peliculas) {
+    /** Carga la lista desde Firestore en _miListaPeliculas. */
+    fun cargarMiListaDesdeFirestore(userId: String) {
+        firestore.collection("miListaPeliculas")
+            .document(userId)
+            .get()
+            .addOnSuccessListener { doc ->
+                val lista = doc.toObject(MiListaPeliculasFirestore::class.java)
+                _miListaPeliculas.clear()
+                if (lista != null) {
+                    _miListaPeliculas.addAll(lista.peliculas)
+                }
+            }
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error al cargar MiLista desde Firestore: ${it.message}")
+            }
+    }
+
+    /** Añade localmente y guarda en Firestore. */
+    fun agregarPeliculaAMiLista(userId: String, pelicula: Peliculas) {
         if (!_miListaPeliculas.contains(pelicula)) {
             _miListaPeliculas.add(pelicula)
+            guardarMiListaEnFirestore(userId)
         }
     }
 
-    fun quitarPeliculaDeMiLista(pelicula: Peliculas) {
-        _miListaPeliculas.remove(pelicula)
+    /** Quita localmente y guarda en Firestore. */
+    fun quitarPeliculaDeMiLista(userId: String, pelicula: Peliculas) {
+        val eliminado = _miListaPeliculas.remove(pelicula)
+        if (eliminado) {
+            guardarMiListaEnFirestore(userId)
+        }
     }
 
+    private fun guardarMiListaEnFirestore(userId: String) {
+        val datos = hashMapOf("peliculas" to _miListaPeliculas.toList())
+        firestore.collection("miListaPeliculas")
+            .document(userId)
+            .set(datos)
+            .addOnSuccessListener {
+                Log.d("PeliculasVM", "Mi Lista guardada en Firestore")
+            }
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error guardar Mi Lista: ${it.message}")
+            }
+    }
+
+    // --- Recomendaciones ---
     fun cargarRecomendaciones(peliculaId: Int) {
         viewModelScope.launch {
             try {
@@ -104,6 +141,7 @@ class PeliculasViewModel : ViewModel() {
         loadPeliculas()
     }
 
+    // --- Watch Providers ---
     private val _watchProviders = mutableStateOf<List<Provider>>(emptyList())
     val watchProviders: State<List<Provider>> = _watchProviders
 
@@ -127,26 +165,7 @@ class PeliculasViewModel : ViewModel() {
         }
     }
 
-    // --- Gestión de Mi Lista en Firestore ---
-
-    fun cargarMiListaDesdeFirestore(userId: String) {
-        firestore.collection("miListaPeliculas")
-            .document(userId)
-            .get()
-            .addOnSuccessListener { doc ->
-                val lista = doc.toObject(MiListaPeliculasFirestore::class.java)
-                _miListaPeliculas.clear()
-                if (lista != null) {
-                    _miListaPeliculas.addAll(lista.peliculas)
-                }
-            }
-            .addOnFailureListener {
-                Log.e("PeliculasViewModel", "Error al cargar MiLista desde Firestore: ${it.message}")
-            }
-    }
-
-    // --- Gestión de puntuaciones ---
-
+    // --- Puntuaciones ---
     private val _ratings = mutableStateOf<Map<Int, Int>>(emptyMap())
     val ratings: State<Map<Int, Int>> = _ratings
 
@@ -192,8 +211,7 @@ class PeliculasViewModel : ViewModel() {
             }
     }
 
-    // --- Gestión de comentarios ---
-
+    // --- Comentarios ---
     private val _comentarios = mutableStateOf<Map<Int, List<Comentario>>>(emptyMap())
     val comentarios: State<Map<Int, List<Comentario>>> = _comentarios
 
@@ -215,18 +233,22 @@ class PeliculasViewModel : ViewModel() {
     }
 
     fun agregarComentario(peliculaId: Int, comentario: Comentario) {
+        // Actualización local inmediata
         val listaActual = _comentarios.value[peliculaId]?.toMutableList() ?: mutableListOf()
         listaActual.add(comentario)
         val mapaActual = _comentarios.value.toMutableMap()
         mapaActual[peliculaId] = listaActual
         _comentarios.value = mapaActual
 
+        // Guardar en Firestore y recargar al éxito
         val datos = hashMapOf("comentarios" to listaActual)
         firestore.collection("comentariosPeliculas")
             .document(peliculaId.toString())
             .set(datos)
             .addOnSuccessListener {
                 Log.d("PeliculasVM", "Comentario guardado en Firestore para película $peliculaId")
+                // recargar desde Firestore para asegurar consistencia
+                cargarComentariosDesdeFirestore(peliculaId)
             }
             .addOnFailureListener {
                 Log.e("PeliculasVM", "Error guardar comentario: ${it.message}")
@@ -237,8 +259,7 @@ class PeliculasViewModel : ViewModel() {
         val comentarios: List<Comentario> = emptyList()
     )
 
-    // --- Gestión de Favoritos ---
-
+    // --- Favoritos ---
     private val _favoritos = mutableStateListOf<Favoritos>()
     val favoritos: List<Favoritos> get() = _favoritos
 
@@ -273,7 +294,7 @@ class PeliculasViewModel : ViewModel() {
     }
 
     private fun guardarFavoritosEnFirestore(userId: String) {
-        val datos = hashMapOf("favoritos" to _favoritos)
+        val datos = hashMapOf("favoritos" to _favoritos.toList())
         firestore.collection("favoritos")
             .document(userId)
             .set(datos)

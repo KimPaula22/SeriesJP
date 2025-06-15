@@ -100,6 +100,8 @@ class AuthViewModel(
             .addOnSuccessListener { result ->
                 result.user?.let {
                     _authState.value = AuthState.Success(it)
+                    // Guardar preferencia para auto-login
+                    setKeepLoggedIn(true)
                 } ?: run {
                     _authState.value = AuthState.Error("Usuario creado pero no disponible")
                 }
@@ -118,6 +120,8 @@ class AuthViewModel(
             .addOnSuccessListener { result ->
                 result.user?.let {
                     _authState.value = AuthState.Success(it)
+                    // Guardar preferencia para auto-login
+                    setKeepLoggedIn(true)
                 } ?: run {
                     _authState.value = AuthState.Error("Login exitoso pero usuario no disponible")
                 }
@@ -149,6 +153,8 @@ class AuthViewModel(
                 val result = auth.signInWithCredential(credential).await()
                 result.user?.let {
                     _authState.value = AuthState.Success(it)
+                    // Guardar preferencia para auto-login
+                    setKeepLoggedIn(true)
                 } ?: run {
                     _authState.value = AuthState.Error("Login con Google exitoso pero usuario no disponible")
                 }

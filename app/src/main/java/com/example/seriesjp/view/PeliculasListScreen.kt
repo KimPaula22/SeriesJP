@@ -1,3 +1,4 @@
+// PeliculasListScreen.kt
 package com.example.seriesjp.view
 
 import androidx.compose.foundation.background
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -24,7 +26,10 @@ import com.example.seriesjp.model.Peliculas
 import com.example.seriesjp.viewmodel.PeliculasViewModel
 
 @Composable
-fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostController) {
+fun PeliculasListScreen(
+    viewModel: PeliculasViewModel,
+    navController: NavHostController
+) {
     val peliculasList = viewModel.peliculasList.value
     val recommendedPeliculas = viewModel.recommendedPeliculas.value
     val isLoading = peliculasList.isEmpty()
@@ -37,51 +42,28 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
                     colors = listOf(Color(0xFFF4C6D7), Color(0xFF121212))
                 )
             )
-            .padding(start = 16.dp, top = 56.dp, end = 16.dp, bottom = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         Text(
             text = "Películas Populares",
             fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
+            fontSize = 28.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (recommendedPeliculas.isNotEmpty()) {
-            Text(
-                text = "Recomendaciones para ti",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(recommendedPeliculas) { pelicula ->
-                    PeliculaTrendingItem(
-                        pelicula = pelicula,
-                        onClick = {
-                            viewModel.cargarRecomendaciones(pelicula.id)
-                            navController.navigate("peliculaDetails/${pelicula.id}")
-                        }
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
         if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
             }
         } else {
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
             ) {
                 items(peliculasList) { pelicula ->
                     PeliculaItem(
@@ -89,9 +71,36 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
                         onClick = {
                             viewModel.cargarRecomendaciones(pelicula.id)
                             navController.navigate("peliculaDetails/${pelicula.id}")
-                        },
-                        viewModel = viewModel
+                        }
                     )
+                }
+
+                if (recommendedPeliculas.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = "Recomendaciones",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
+                        )
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(recommendedPeliculas) { recPelicula ->
+                                PeliculaTrendingItem(
+                                    pelicula = recPelicula,
+                                    modifier = Modifier.size(UiDefaults.TrendingItemSize),
+                                    onClick = {
+                                        viewModel.cargarRecomendaciones(recPelicula.id)
+                                        navController.navigate("peliculaDetails/${recPelicula.id}")
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -101,57 +110,48 @@ fun PeliculasListScreen(viewModel: PeliculasViewModel, navController: NavHostCon
 @Composable
 fun PeliculaItem(
     pelicula: Peliculas,
-    onClick: () -> Unit,
-    viewModel: PeliculasViewModel
+    onClick: () -> Unit
 ) {
-    val yaEnLista = viewModel.miListaPeliculas.contains(pelicula)
-
     Card(
         modifier = Modifier
-            .width(320.dp)
-            .padding(8.dp)
-            .clickable { onClick() },
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        Row(modifier = Modifier.padding(8.dp)) {
+        Row(modifier = Modifier.padding(12.dp)) {
             AsyncImage(
                 model = "https://image.tmdb.org/t/p/w500${pelicula.posterPath}",
-                contentDescription = pelicula.title,
+                contentDescription = pelicula.title ?: "Película sin título",
                 modifier = Modifier
-                    .size(100.dp)
-                    .padding(end = 8.dp),
+                    .size(110.dp)
+                    .padding(end = 12.dp),
                 contentScale = ContentScale.Crop
             )
-
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.CenterVertically)
+            ) {
                 Text(
                     text = pelicula.title ?: "Sin título",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                     maxLines = 1,
                     color = MaterialTheme.colorScheme.onBackground
                 )
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "📅 Estreno: ${pelicula.releaseDate ?: "No disponible"}",
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "⭐ Rating: ${pelicula.voteAverage ?: "N/A"}",
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        if (yaEnLista) viewModel.quitarPeliculaDeMiLista(pelicula)
-                        else viewModel.agregarPeliculaAMiLista(pelicula)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = if (yaEnLista) "Quitar de Mi Lista" else "Añadir a Mi Lista")
-                }
             }
         }
     }
@@ -160,6 +160,7 @@ fun PeliculaItem(
 @Composable
 fun PeliculaTrendingItem(
     pelicula: Peliculas,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
     Card(
@@ -174,7 +175,7 @@ fun PeliculaTrendingItem(
                 ?: "https://via.placeholder.com/180x200"
             AsyncImage(
                 model = imageUrl,
-                contentDescription = pelicula.title ?: "Sin título",
+                contentDescription = pelicula.title ?: "Sin nombre",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp),
@@ -214,36 +215,43 @@ fun PeliculaMiListaItem(
     Card(
         modifier = Modifier
             .width(140.dp)
-            .padding(4.dp)
-            .clickable { onClick() },
+            .padding(6.dp)
+            .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Column(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AsyncImage(
                 model = "https://image.tmdb.org/t/p/w500${pelicula.posterPath}",
-                contentDescription = pelicula.title,
+                contentDescription = pelicula.title ?: "Película sin título",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
+                    .height(180.dp),
                 contentScale = ContentScale.Crop
             )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = pelicula.title ?: "Sin título",
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 color = MaterialTheme.colorScheme.onBackground
             )
             IconButton(
                 onClick = onRemove,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(28.dp)
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Eliminar", tint = Color.Red)
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Eliminar",
+                    tint = Color.Red
+                )
             }
         }
     }
 }
+
+

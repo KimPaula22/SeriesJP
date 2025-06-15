@@ -33,7 +33,7 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
     private val _watchProviders = mutableStateOf<List<Provider>>(emptyList())
     val watchProviders: State<List<Provider>> = _watchProviders
 
-    private val _ratings = mutableStateMapOf<Int, Int>() // Nuevo: puntuaciones
+    private val _ratings = mutableStateMapOf<Int, Int>() //  puntuaciones
     val ratings: Map<Int, Int> get() = _ratings
 
     private val apiKey = "87ba94f350ec59be982686b11c25da34"
@@ -173,4 +173,7 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
                 Log.e("Firestore", "Error al cargar comentarios", it)
             }
     }
+
+
+
 }

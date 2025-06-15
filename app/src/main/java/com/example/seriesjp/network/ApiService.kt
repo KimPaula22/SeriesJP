@@ -73,4 +73,13 @@ interface ApiService {
         @Query("api_key") apiKey: String
     ): Response<WatchProvidersResponse>
 
+
+
+    @GET("tv/{id}")
+    suspend fun getSeriePorId(
+        @Path("id") id: Int,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "es-ES"
+    ): Response<Series>
+
 }
