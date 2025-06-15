@@ -86,6 +86,11 @@ fun PeliculaDetailsScreen(
     var showComentariosDialog by remember { mutableStateOf(false) }
     var showNuevoComentarioDialog by remember { mutableStateOf(false) }
 
+    // Estados del formulario de nuevo comentario
+    var usuario by remember { mutableStateOf("") }
+    var comentarioTexto by remember { mutableStateOf("") }
+    var puntuacion by remember { mutableStateOf(5) }
+
     pelicula?.let { p ->
         Column(
             modifier = Modifier
@@ -112,7 +117,6 @@ fun PeliculaDetailsScreen(
             Text(p.title, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color.White)
             Spacer(Modifier.height(8.dp))
 
-            // Scrollable area desde aquí ↓
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -195,10 +199,9 @@ fun PeliculaDetailsScreen(
                         Text("Nuevo Comentario")
                     }
                 }
-            } // ← Fin del área con scroll
+            }
         }
 
-        // Diálogo de comentarios
         if (showComentariosDialog) {
             AlertDialog(
                 onDismissRequest = { showComentariosDialog = false },
@@ -233,12 +236,7 @@ fun PeliculaDetailsScreen(
             )
         }
 
-        // Diálogo para nuevo comentario
         if (showNuevoComentarioDialog) {
-            var usuario by remember { mutableStateOf("") }
-            var comentarioTexto by remember { mutableStateOf("") }
-            var puntuacion by remember { mutableStateOf(5) }
-
             AlertDialog(
                 onDismissRequest = { showNuevoComentarioDialog = false },
                 title = { Text("Nuevo Comentario") },
@@ -272,6 +270,12 @@ fun PeliculaDetailsScreen(
                             texto = comentarioTexto
                         )
                         peliculaId?.let { viewModel.agregarComentario(it, nuevoComentario) }
+
+                        // Limpieza del formulario después de enviar
+                        usuario = ""
+                        comentarioTexto = ""
+                        puntuacion = 5
+
                         showNuevoComentarioDialog = false
                     }) {
                         Text("Enviar")

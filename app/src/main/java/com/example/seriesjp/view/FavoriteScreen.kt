@@ -1,6 +1,5 @@
 package com.example.seriesjp.view
 
-import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,9 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.example.seriesjp.viewmodel.FavoritesViewModel
 import com.example.seriesjp.model.Favoritos
 
@@ -20,19 +17,16 @@ fun FavoritesScreen(
     userId: String,
     favoritesViewModel: FavoritesViewModel
 ) {
-    // El estado para almacenar los favoritos
-    var favoritesList by remember { mutableStateOf<List<Favoritos>>(emptyList()) }
-    val isLoading = remember { mutableStateOf(true) }
+    // Observar el StateFlow de favoritos
+    val favoritesList by favoritesViewModel.favorites.collectAsState()
+    var isLoading by remember { mutableStateOf(true) }
 
-    // Cargar los favoritos desde el ViewModel
+    // Cargar favoritos solo una vez
     LaunchedEffect(userId) {
-        favoritesViewModel.getFavorites(userId) { favorites ->
-            favoritesList = favorites
-            isLoading.value = false
-        }
+        favoritesViewModel.loadFavorites(userId)
+        isLoading = false
     }
 
-    // Pantalla de favoritos
     Scaffold(
         topBar = {
             TopAppBar(
@@ -40,7 +34,7 @@ fun FavoritesScreen(
             )
         },
         content = { padding ->
-            if (isLoading.value) {
+            if (isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -60,7 +54,11 @@ fun FavoritesScreen(
                         Text("No tienes favoritos guardados.")
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.padding(padding)) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
                         items(favoritesList) { favorito ->
                             FavoriteItem(favorito)
                         }
@@ -73,7 +71,6 @@ fun FavoritesScreen(
 
 @Composable
 fun FavoriteItem(favorito: Favoritos) {
-    // Aquí renderizas cada favorito
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -86,15 +83,9 @@ fun FavoriteItem(favorito: Favoritos) {
                 .fillMaxWidth()
         ) {
             Text(
-                text = favorito.titulo, // Cambia "titulo" por el campo adecuado de tu modelo
+                text = favorito.titulo,
                 style = MaterialTheme.typography.titleMedium
             )
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewFavoritesScreen() {
-    FavoritesScreen(userId = "usuario123", favoritesViewModel = FavoritesViewModel())
 }

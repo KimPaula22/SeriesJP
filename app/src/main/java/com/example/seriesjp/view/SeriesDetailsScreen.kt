@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.ui.text.font.FontWeight
 import com.example.seriesjp.model.Comentario
+import com.example.seriesjp.model.Favoritos
+import com.example.seriesjp.viewmodel.FavoritesViewModel
 
 @Composable
 fun BackButton(navController: NavHostController) {
@@ -71,7 +73,9 @@ fun RatingBar(
 fun SeriesDetailsScreen(
     navController: NavHostController,
     seriesId: Int?,
-    viewModel: SeriesViewModel
+    viewModel: SeriesViewModel,
+    favoritesViewModel: FavoritesViewModel,
+    userId: String
 ) {
     val populares by viewModel.seriesList
     val recomendaciones by viewModel.recommendedSeries
@@ -215,8 +219,18 @@ fun SeriesDetailsScreen(
 
                     Button(
                         onClick = {
-                            if (enMiLista) viewModel.quitarSerieDeMiLista(it)
-                            else viewModel.agregarSerieAMiLista(it)
+                            if (enMiLista) {
+                                viewModel.quitarSerieDeMiLista(it)
+                                favoritesViewModel.removeFavorite(userId, it.id.toString())
+                            } else {
+                                viewModel.agregarSerieAMiLista(it)
+                                val favorito = Favoritos(
+                                    id = it.id.toString(),
+                                    titulo = it.name,                   // título
+                                    posterUrl = "https://image.tmdb.org/t/p/w500${it.posterPath}" // url del póster
+                                )
+                                favoritesViewModel.addFavorite(userId, favorito)
+                            }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {

@@ -5,8 +5,9 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.seriesjp.model.Comentario
-import com.example.seriesjp.model.Peliculas
+import com.example.seriesjp.model.Favoritos
 import com.example.seriesjp.model.MiListaPeliculasFirestore
+import com.example.seriesjp.model.Peliculas
 import com.example.seriesjp.model.Provider
 import com.example.seriesjp.network.RetrofitInstance
 import com.google.firebase.firestore.FirebaseFirestore
@@ -56,7 +57,6 @@ class PeliculasViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 if (query.isBlank()) {
-                    // Si la búsqueda está vacía, recarga lista completa
                     loadPeliculas()
                 } else {
                     val response = RetrofitInstance.api.searchPeliculas(apiKey, query)
@@ -107,9 +107,6 @@ class PeliculasViewModel : ViewModel() {
     private val _watchProviders = mutableStateOf<List<Provider>>(emptyList())
     val watchProviders: State<List<Provider>> = _watchProviders
 
-    /**
-     * Carga los proveedores de la película en España ("ES")
-     */
     fun loadWatchProviders(movieId: Int) {
         viewModelScope.launch {
             try {
@@ -150,21 +147,15 @@ class PeliculasViewModel : ViewModel() {
 
     // --- Gestión de puntuaciones ---
 
-    // Mapa local peliculaId -> puntuacion (1..10, por ejemplo)
     private val _ratings = mutableStateOf<Map<Int, Int>>(emptyMap())
     val ratings: State<Map<Int, Int>> = _ratings
 
-    /**
-     * Carga puntuaciones desde Firestore: el documento userId contiene un Map<String, Int>
-     * con claves como "123" que se convierten a Int aquí.
-     */
     fun cargarPuntuacionesDesdeFirestore(userId: String) {
         firestore.collection("puntuacionesPeliculas")
             .document(userId)
             .get()
             .addOnSuccessListener { doc ->
                 val data = doc.data ?: emptyMap<String, Any>()
-                // data: Map<String, Any>, donde la clave es "peliculaId" como String
                 val map = data.mapNotNull { entry ->
                     val keyInt = entry.key.toIntOrNull()
                     val valueInt = when (val v = entry.value) {
@@ -184,16 +175,11 @@ class PeliculasViewModel : ViewModel() {
             }
     }
 
-    /**
-     * Guarda la puntuación en local y en Firestore, convirtiendo claves Int a String.
-     */
     fun guardarPuntuacion(userId: String, peliculaId: Int, puntuacion: Int) {
-        // Actualizar primero el estado local
         val nuevaMapaLocal = _ratings.value.toMutableMap()
         nuevaMapaLocal[peliculaId] = puntuacion
         _ratings.value = nuevaMapaLocal
 
-        // Convertir el Map<Int, Int> a Map<String, Int> antes de enviar a Firestore
         val mapaStringKey: Map<String, Int> = nuevaMapaLocal.mapKeys { it.key.toString() }
         firestore.collection("puntuacionesPeliculas")
             .document(userId)
@@ -211,9 +197,6 @@ class PeliculasViewModel : ViewModel() {
     private val _comentarios = mutableStateOf<Map<Int, List<Comentario>>>(emptyMap())
     val comentarios: State<Map<Int, List<Comentario>>> = _comentarios
 
-    /**
-     * Carga comentarios de una película. Cada documento id = peliculaId (String) con campo "comentarios": List<Comentario>
-     */
     fun cargarComentariosDesdeFirestore(peliculaId: Int) {
         firestore.collection("comentariosPeliculas")
             .document(peliculaId.toString())
@@ -231,18 +214,13 @@ class PeliculasViewModel : ViewModel() {
             }
     }
 
-    /**
-     * Agrega un comentario localmente y lo guarda en Firestore.
-     */
     fun agregarComentario(peliculaId: Int, comentario: Comentario) {
-        // Actualizar estado local
         val listaActual = _comentarios.value[peliculaId]?.toMutableList() ?: mutableListOf()
         listaActual.add(comentario)
         val mapaActual = _comentarios.value.toMutableMap()
         mapaActual[peliculaId] = listaActual
         _comentarios.value = mapaActual
 
-        // Guardar en Firestore: el campo "comentarios" es una lista de objetos Comentario
         val datos = hashMapOf("comentarios" to listaActual)
         firestore.collection("comentariosPeliculas")
             .document(peliculaId.toString())
@@ -255,8 +233,59 @@ class PeliculasViewModel : ViewModel() {
             }
     }
 
-    // Clase auxiliar para mapear Firestore
     data class ComentariosFirestore(
         val comentarios: List<Comentario> = emptyList()
+    )
+
+    // --- Gestión de Favoritos ---
+
+    private val _favoritos = mutableStateListOf<Favoritos>()
+    val favoritos: List<Favoritos> get() = _favoritos
+
+    fun cargarFavoritosDesdeFirestore(userId: String) {
+        firestore.collection("favoritos")
+            .document(userId)
+            .get()
+            .addOnSuccessListener { doc ->
+                val lista = doc.toObject(FavoritosFirestore::class.java)
+                _favoritos.clear()
+                if (lista != null) {
+                    _favoritos.addAll(lista.favoritos)
+                }
+            }
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error al cargar favoritos: ${it.message}")
+            }
+    }
+
+    fun agregarFavorito(userId: String, favorito: Favoritos) {
+        if (!_favoritos.any { it.id == favorito.id }) {
+            _favoritos.add(favorito)
+            guardarFavoritosEnFirestore(userId)
+        }
+    }
+
+    fun quitarFavorito(userId: String, favoritoId: String) {
+        val eliminado = _favoritos.removeAll { it.id == favoritoId }
+        if (eliminado) {
+            guardarFavoritosEnFirestore(userId)
+        }
+    }
+
+    private fun guardarFavoritosEnFirestore(userId: String) {
+        val datos = hashMapOf("favoritos" to _favoritos)
+        firestore.collection("favoritos")
+            .document(userId)
+            .set(datos)
+            .addOnSuccessListener {
+                Log.d("PeliculasVM", "Favoritos guardados en Firestore")
+            }
+            .addOnFailureListener {
+                Log.e("PeliculasVM", "Error guardar favoritos: ${it.message}")
+            }
+    }
+
+    data class FavoritosFirestore(
+        val favoritos: List<Favoritos> = emptyList()
     )
 }
